@@ -429,7 +429,7 @@ const results = [];
 const step = (name, ok) => results.push({ name, ok: Boolean(ok) });
 
 const SidebarBody = registrations.get('sidebar.right.pane.tab|dsh-git-explorer');
-const ConversationView = registrations.get('conversation.view|git');
+const ConversationView = registrations.get('conversation.view|git-explorer');
 const SidebarTitle = registrations.get('sidebar.right.pane.tab.title|dsh-git-explorer');
 const OpenButton = registrations.get('conversation.session.header.actions|dsh-git-explorer.open');
 
@@ -529,6 +529,12 @@ if (!SidebarBody || !ConversationView || !SidebarTitle || !OpenButton) {
 for (const [key, component] of registrations) {
   step(`registered ${key}`, typeof component === 'function');
 }
+
+// The module must carry its cordis plugin name and a collision-free tab kind:
+// `dsh-better-sidebar` owns the native `git` tab kind at the extension band, and
+// reusing it makes the sidebar registry throw — which fails the whole web boot.
+step('exports its plugin name', plugin.name === 'dsh-git-explorer');
+step('tab kind avoids the built-in git kind', plugin.name !== undefined && !/KIND = 'git';/.test(source));
 
 let failed = problems.length > 0;
 for (const result of results) {

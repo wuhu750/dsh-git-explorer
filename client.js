@@ -14,7 +14,10 @@ window.__ModuleLoader__.load({
     /** Locale namespace owned by this plugin. */
     const NS = 'dshGit';
     /** Sidebar tab kind and conversation View id. */
-    const KIND = 'git';
+    // A namespaced kind: `dsh-better-sidebar` already registers a native tab
+    // kind named `git`, and two `extension`-band registrations of one kind make
+    // the sidebar registry throw — which fails the whole web boot.
+    const KIND = 'git-explorer';
     /** Sidebar tab implementation identity (also its body/title registration key). */
     const TAB_ID = 'dsh-git-explorer';
     /** Upper bound on file rows rendered for one commit or comparison. */
@@ -4055,6 +4058,9 @@ window.__ModuleLoader__.load({
     }
 
     return {
+      // `name` must match the loader row id: cordis uses it as the fiber's
+      // identity and refuses to activate an object plugin without it.
+      name: 'dsh-git-explorer',
       inject: ['slots', 'locale', 'sidebarRightTabs', 'sidebarRight'],
       apply,
     };
