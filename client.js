@@ -14,7 +14,7 @@ window.__ModuleLoader__.load({
     /** Locale namespace owned by this plugin. */
     const NS = 'dshGit';
     /** Sidebar tab kind and conversation View id. */
-    const KIND = 'gitlens';
+    const KIND = 'git';
     /** Sidebar tab implementation identity (also its body/title registration key). */
     const TAB_ID = 'dsh-git-explorer';
     /** Upper bound on file rows rendered for one commit or comparison. */
@@ -145,6 +145,67 @@ window.__ModuleLoader__.load({
       'common.noData': '暂无数据',
       'common.close': '关闭',
       'common.moreFiles': '仅显示前 {n} 个文件',
+      'tabs.graph': '提交图',
+      'tabs.tags': '标签',
+      'graph.empty': '没有可绘制的提交',
+      'graph.loading': '正在读取提交图…',
+      'graph.lanes': '{n} 条车道',
+      'graph.all': '所有引用',
+      'graph.current': '仅当前分支',
+      'graph.showAll': '显示所有引用',
+      'graph.showCurrent': '只看当前分支',
+      'graph.zoom': '紧凑模式',
+      'tags.empty': '没有标签',
+      'tags.hint': '标签指向某个提交，常用于标记版本。',
+      'tags.create': '新建标签',
+      'tags.name': '标签名',
+      'tags.target': '目标提交（默认 HEAD）',
+      'tags.message': '附注（留空为轻量标签）',
+      'tags.annotated': '附注标签',
+      'tags.lightweight': '轻量标签',
+      'tags.deleteConfirm': '确定删除这个标签吗？',
+      'tags.deleteRemote': '同时删除远端标签',
+      'tags.checkout': '检出此标签',
+      'tags.detachedHint': '检出标签会进入游离 HEAD 状态。',
+      'hunks.title': '按块暂存',
+      'hunks.empty': '没有可用的差异块',
+      'hunks.stage': '暂存此块',
+      'hunks.unstage': '取消暂存此块',
+      'hunks.discard': '丢弃此块',
+      'hunks.discardConfirm': '丢弃这个差异块吗？此操作不可撤销。',
+      'hunks.stageAll': '暂存全部块',
+      'hunks.unstageAll': '取消暂存全部块',
+      'hunks.count': '{n} 块',
+      'hunks.selectAll': '全选',
+      'hunks.selectNone': '全不选',
+      'hunks.applySelected': '应用选中块',
+      'push.title': '推送',
+      'push.upstream': '设置上游 (-u)',
+      'push.force': '强制（--force-with-lease）',
+      'push.tags': '同时推送标签',
+      'pull.title': '拉取',
+      'pull.rebase': '用 rebase 代替合并',
+      'pull.autostash': '自动储藏改动',
+      'signoff': '添加签名行',
+      'noVerify': '跳过钩子',
+      'action.merge': '合并',
+      'action.cherryPick': '拣选',
+      'action.revert': '还原',
+      'action.abort': '中止操作',
+      'action.abortConfirm': '确定中止当前操作吗？',
+      'action.lineHistory': '行历史',
+      'action.tags': '标签',
+      'action.hunks': '按块',
+      'blame.truncated': '已截断，仅显示前 {n} 行',
+      'lineHistory.empty': '选择行范围后查看历史',
+      'lineHistory.title': '第 {start}–{end} 行的历史',
+      'confirm.title': '确认操作',
+      'confirm.ok': '确定',
+      'annot.summary': '文件注解',
+      'annot.lines': '{n} 行',
+      'annot.strip': '按行所属提交的时间分布',
+      'annot.newest': '最近改动',
+      'annot.oldest': '最早一行',
     };
 
     const EN = {
@@ -268,6 +329,67 @@ window.__ModuleLoader__.load({
       'common.noData': 'No data',
       'common.close': 'Close',
       'common.moreFiles': 'Showing the first {n} files',
+      'tabs.graph': 'Graph',
+      'tabs.tags': 'Tags',
+      'graph.empty': 'No commits to draw',
+      'graph.loading': 'Reading the commit graph…',
+      'graph.lanes': '{n} lanes',
+      'graph.all': 'All refs',
+      'graph.current': 'Current branch',
+      'graph.showAll': 'Show all refs',
+      'graph.showCurrent': 'Current branch only',
+      'graph.zoom': 'Compact rows',
+      'tags.empty': 'No tags',
+      'tags.hint': 'A tag points at a commit, usually to mark a release.',
+      'tags.create': 'Create tag',
+      'tags.name': 'Tag name',
+      'tags.target': 'Target commit (defaults to HEAD)',
+      'tags.message': 'Annotation (leave empty for a lightweight tag)',
+      'tags.annotated': 'Annotated',
+      'tags.lightweight': 'Lightweight',
+      'tags.deleteConfirm': 'Delete this tag?',
+      'tags.deleteRemote': 'Also delete the remote tag',
+      'tags.checkout': 'Check out this tag',
+      'tags.detachedHint': 'Checking out a tag leaves you on a detached HEAD.',
+      'hunks.title': 'Stage by hunk',
+      'hunks.empty': 'No hunks to show',
+      'hunks.stage': 'Stage this hunk',
+      'hunks.unstage': 'Unstage this hunk',
+      'hunks.discard': 'Discard this hunk',
+      'hunks.discardConfirm': 'Discard this hunk? This cannot be undone.',
+      'hunks.stageAll': 'Stage every hunk',
+      'hunks.unstageAll': 'Unstage every hunk',
+      'hunks.count': '{n} hunks',
+      'hunks.selectAll': 'Select all',
+      'hunks.selectNone': 'Select none',
+      'hunks.applySelected': 'Apply selected hunks',
+      'push.title': 'Push',
+      'push.upstream': 'Set upstream (-u)',
+      'push.force': 'Force (--force-with-lease)',
+      'push.tags': 'Push tags too',
+      'pull.title': 'Pull',
+      'pull.rebase': 'Rebase instead of merge',
+      'pull.autostash': 'Autostash changes',
+      'signoff': 'Add a signed-off-by line',
+      'noVerify': 'Skip hooks',
+      'action.merge': 'Merge',
+      'action.cherryPick': 'Cherry-pick',
+      'action.revert': 'Revert',
+      'action.abort': 'Abort',
+      'action.abortConfirm': 'Abort the operation in progress?',
+      'action.lineHistory': 'Line history',
+      'action.tags': 'Tags',
+      'action.hunks': 'By hunk',
+      'blame.truncated': 'Truncated; showing the first {n} lines',
+      'lineHistory.empty': 'Pick a line range to see its history',
+      'lineHistory.title': 'History of lines {start}–{end}',
+      'confirm.title': 'Confirm',
+      'confirm.ok': 'OK',
+      'annot.summary': 'File annotation',
+      'annot.lines': '{n} lines',
+      'annot.strip': 'Line distribution by commit age',
+      'annot.newest': 'Newest change',
+      'annot.oldest': 'Oldest line',
     };
 
     /* ------------------------------------------------------------------ */
@@ -385,6 +507,134 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ */
+    /* Commit graph lanes                                                 */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Assign lanes to a `--date-order` commit list.
+     *
+     * `rows` arrives topologically sorted (children before parents). Each row
+     * takes the left-most lane whose pending commit is one of its parents, or
+     * the left-most free lane when it starts a new line of history. Parents
+     * that are not `rows` members (the boundary of a paged window) are handed
+     * a lane too, so edges never dangle.
+     *
+     * Returns the rows with `lane`, plus per-row `edges` describing how lanes
+     * move between this row and the next one.
+     */
+    function assignLanes(commits) {
+      /** Lane slots: each entry is a commit hash still waiting for its row. */
+      const lanes = [];
+      const rows = [];
+      const indexOf = new Map();
+      for (let index = 0; index < commits.length; index += 1) indexOf.set(commits[index].hash, index);
+
+      const acquire = (hash) => {
+        const existing = lanes.indexOf(hash);
+        if (existing >= 0) return existing;
+        const free = lanes.indexOf(undefined);
+        if (free >= 0) {
+          lanes[free] = hash;
+          return free;
+        }
+        lanes.push(hash);
+        return lanes.length - 1;
+      };
+
+      for (let index = 0; index < commits.length; index += 1) {
+        const commit = commits[index];
+        let lane = lanes.indexOf(commit.hash);
+        const inherited = lane >= 0;
+        if (lane < 0) lane = acquire(commit.hash);
+
+        // Snapshot first: lanes that also hold this commit are converging into
+        // this row, and the renderer needs to see them to draw the join.
+        const before = lanes.slice();
+        for (let slot = 0; slot < lanes.length; slot += 1) {
+          if (slot !== lane && lanes[slot] === commit.hash) lanes[slot] = undefined;
+        }
+        const parents = commit.parents.length > 0 ? commit.parents : [];
+        if (parents.length === 0) {
+          lanes[lane] = undefined;
+        } else {
+          lanes[lane] = parents[0];
+        }
+        const parentLanes = [];
+        for (let slot = 0; slot < parents.length; slot += 1) {
+          const parent = parents[slot];
+          if (slot === 0) {
+            parentLanes.push(lane);
+            continue;
+          }
+          parentLanes.push(acquire(parent));
+        }
+
+        // Compact trailing holes so the graph does not keep growing rightwards.
+        while (lanes.length > 0 && lanes[lanes.length - 1] === undefined) lanes.pop();
+
+        rows.push({
+          ...commit,
+          lane,
+          inherited,
+          parentLanes,
+          totalLanes: Math.max(lanes.length, lane + 1),
+          startsLine: !inherited,
+          edges: {
+            before: before.slice(),
+            after: lanes.slice(),
+          },
+        });
+      }
+
+      const width = rows.reduce((max, row) => Math.max(max, row.totalLanes, row.edges.before.length, row.edges.after.length), 1);
+      return { rows, width };
+    }
+
+    /** Distinct colour slot per lane, stable across re-renders. */
+    function laneColor(lane) {
+      const palette = ['#4f8ff7', '#2da44e', '#bf8700', '#8250df', '#d4442f', '#1f9ea8', '#c2410c', '#6b7a8f'];
+      return palette[lane % palette.length];
+    }
+
+    function summarizeBlame(lines) {
+      if (!lines || lines.length === 0) return null;
+      const byAuthor = new Map();
+      let oldest = Number.POSITIVE_INFINITY;
+      let newest = 0;
+      const buckets = new Array(24).fill(0);
+      for (const line of lines) {
+        const key = line.author || '';
+        const entry = byAuthor.get(key) ?? { author: key || '', email: line.email || '', count: 0, hash: '' };
+        entry.count += 1;
+        if (entry.hash === '' && line.hash) entry.hash = line.hash;
+        byAuthor.set(key, entry);
+        if (line.time > 0) {
+          if (line.time < oldest) oldest = line.time;
+          if (line.time > newest) newest = line.time;
+          // Bucket by age on a log scale: index 0 is today, 23 is ~11 years old.
+          const days = Math.max(0, (Date.now() - line.time) / 86_400_000);
+          const index = Math.min(23, Math.max(0, Math.round((Math.log2(days + 1) / Math.log2(4096)) * 23)));
+          buckets[index] += 1;
+        }
+      }
+      const authors = [...byAuthor.values()].sort((a, b) => b.count - a.count);
+      const total = lines.length;
+      const peak = buckets.reduce((max, value) => Math.max(max, value), 0) || 1;
+      return {
+        total,
+        authors: authors.slice(0, 6),
+        authorCount: authors.length,
+        oldest: Number.isFinite(oldest) ? oldest : 0,
+        newest,
+        buckets,
+        peak,
+        // Weighted by line count, so a summary is not skewed by one long file tail.
+        share: (entry) => Math.max(1, Math.round((entry.count / total) * 100)),
+        firstHashOf: (entry) => entry.hash || undefined,
+      };
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Icons                                                              */
     /* ------------------------------------------------------------------ */
 
@@ -479,6 +729,32 @@ window.__ModuleLoader__.load({
       h('path', { key: 3, d: 'M6 7l1 13h10l1-13' }),
     ], '0 0 24 24', props?.size ?? 13);
     const IconChevron = (props) => svg(h('path', { d: props?.open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6' }), '0 0 24 24', props?.size ?? 12);
+    const IconGraph = (props) => svg([
+      h('circle', { key: 1, cx: 6, cy: 6, r: 2.1 }),
+      h('circle', { key: 2, cx: 6, cy: 18, r: 2.1 }),
+      h('circle', { key: 3, cx: 18, cy: 12, r: 2.1 }),
+      h('path', { key: 4, d: 'M8 6.8c7 0 3 5.2 8 5.2' }),
+      h('path', { key: 5, d: 'M8 17.2c7 0 3-5.2 8-5.2' }),
+    ], '0 0 24 24', props?.size ?? 13);
+    const IconTag = (props) => svg([
+      h('path', { key: 1, d: 'M4 4h7l9 9-7 7-9-9V4z' }),
+      h('circle', { key: 2, cx: 8, cy: 8, r: 1.3 }),
+    ], '0 0 24 24', props?.size ?? 13);
+    const IconHunks = (props) => svg([
+      h('path', { key: 1, d: 'M4 6h16M4 12h16M4 18h16' }),
+      h('path', { key: 2, d: 'M9 3v18', strokeDasharray: '2 3' }),
+    ], '0 0 24 24', props?.size ?? 13);
+    const IconCheck = (props) => svg(h('path', { d: 'M5 13l4 4 10-10' }), '0 0 24 24', props?.size ?? 13);
+    const IconPull = (props) => svg([
+      h('path', { key: 1, d: 'M12 4v12' }),
+      h('path', { key: 2, d: 'M7 11l5 5 5-5' }),
+      h('path', { key: 3, d: 'M5 20h14' }),
+    ], '0 0 24 24', props?.size ?? 13);
+    const IconPush = (props) => svg([
+      h('path', { key: 1, d: 'M12 20V8' }),
+      h('path', { key: 2, d: 'M7 13l5-5 5 5' }),
+      h('path', { key: 3, d: 'M5 4h14' }),
+    ], '0 0 24 24', props?.size ?? 13);
 
     /* ------------------------------------------------------------------ */
     /* Host API                                                           */
@@ -799,6 +1075,75 @@ window.__ModuleLoader__.load({
 .dgp-more { display: flex; justify-content: center; padding: 8px; }
 .dgp-muted { color: var(--dsw-alias-label-tertiary); }
 .dgp-mono { font-family: var(--dsw-font-mono, ui-monospace, monospace); }
+/* Commit graph */
+.dgp-graph { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.dgp-graph-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.dgp-graph-row {
+  display: flex; align-items: center; gap: 0; height: 26px; padding: 0 8px 0 4px;
+  cursor: pointer; position: relative; min-width: 0;
+}
+.dgp-graph-row:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dgp-graph-row.selected { background: var(--dsw-alias-interactive-bg-hover); }
+.dgp-graph-row.selected .dgp-graph-subject { color: var(--dsw-alias-label-primary); font-weight: 600; }
+.dgp-graph-gutter { flex: none; height: 100%; display: block; overflow: visible; }
+.dgp-graph-body { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; margin-left: 8px; }
+.dgp-graph-subject { font-size: 12px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
+.dgp-graph-meta { display: flex; align-items: center; gap: 5px; flex: none; color: var(--dsw-alias-label-tertiary); font-size: 10.5px; }
+.dgp-graph-hash { font-family: var(--dsw-font-mono, ui-monospace, monospace); color: var(--dsw-alias-label-tertiary); font-size: 10px; }
+.dgp-graph-refs { display: inline-flex; gap: 3px; flex: none; }
+.dgp-graph-toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; flex: none; border-bottom: .5px solid var(--dsw-alias-border-l3); flex-wrap: wrap; }
+.dgp-graph-toolbar .dgp-btn { height: 23px; font-size: 10.5px; padding: 0 7px; }
+/* Tags */
+.dgp-tagrow { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: .5px solid color-mix(in srgb, var(--dsw-alias-border-l3) 55%, transparent); }
+.dgp-tagrow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dgp-tagrow-main { flex: 1; min-width: 0; }
+.dgp-tagrow-name { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+.dgp-tagrow-sub { font-size: 10.5px; color: var(--dsw-alias-label-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dgp-tagrow-actions { display: none; gap: 1px; flex: none; }
+.dgp-tagrow:hover .dgp-tagrow-actions { display: inline-flex; }
+.dgp-tagkind { font-size: 9px; font-weight: 700; letter-spacing: .03em; padding: 0 4px; height: 14px; border-radius: 3px; display: inline-flex; align-items: center; text-transform: uppercase; }
+.dgp-tagkind.annotated { color: #bf8700; background: color-mix(in srgb, #bf8700 15%, transparent); }
+.dgp-tagkind.lightweight { color: var(--dsw-alias-label-tertiary); background: var(--dsw-alias-bg-layer-3); }
+/* Hunk staging */
+.dgp-hunk-toolbar { display: flex; align-items: center; gap: 6px; padding: 7px 10px; flex: none; border-bottom: .5px solid var(--dsw-alias-border-l3); flex-wrap: wrap; }
+.dgp-hunk-toolbar .dgp-btn { height: 23px; font-size: 10.5px; padding: 0 8px; }
+.dgp-hunk { border-bottom: .5px solid var(--dsw-alias-border-l3); }
+.dgp-hunk-head {
+  display: flex; align-items: center; gap: 7px; padding: 5px 10px;
+  background: var(--dsw-alias-bg-layer-1); position: sticky; top: 0; z-index: 1;
+}
+.dgp-hunk-head input { accent-color: var(--dsw-alias-state-business-primary); width: 12px; height: 12px; margin: 0; }
+.dgp-hunk-label { font-family: var(--dsw-font-mono, ui-monospace, monospace); font-size: 10.5px; color: var(--dsw-alias-state-business-primary); flex: none; }
+.dgp-hunk-actions { margin-left: auto; display: inline-flex; gap: 2px; flex: none; }
+.dgp-hunk-lines { font-family: var(--dsw-font-mono, ui-monospace, monospace); font-size: 11px; line-height: 17px; }
+.dgp-overlay {
+  position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base) 55%, transparent); padding: 16px;
+}
+.dgp-modal {
+  width: min(340px, 100%); background: var(--dsw-alias-bg-layer-1); border-radius: 10px;
+  border: .5px solid var(--dsw-alias-border-l2); box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+  padding: 14px; display: flex; flex-direction: column; gap: 9px;
+}
+.dgp-modal-title { font-size: 12.5px; font-weight: 650; }
+.dgp-modal .dgp-check { font-size: 11px; }
+.dgp-modal-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px; }
+.dgp-annot { flex: none; border-bottom: .5px solid var(--dsw-alias-border-l3); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.dgp-annot-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.dgp-annot-title { font-size: 11px; font-weight: 650; color: var(--dsw-alias-label-secondary); }
+.dgp-annot-strip { display: flex; gap: 1px; height: 8px; border-radius: 3px; overflow: hidden; }
+.dgp-annot-cell { flex: 1; background: var(--dsw-alias-state-business-primary); border-radius: 1px; }
+.dgp-annot-people { display: flex; flex-wrap: wrap; gap: 4px; }
+.dgp-annot-person {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px 1px 1px;
+  border: .5px solid var(--dsw-alias-border-l3); border-radius: 10px; background: transparent;
+  font-size: 10.5px; color: var(--dsw-alias-label-secondary); max-width: 160px;
+}
+.dgp-annot-person:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.dgp-annot-person .dgp-avatar { width: 14px; height: 14px; font-size: 7.5px; }
+.dgp-annot-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dgp-annot-share { color: var(--dsw-alias-label-tertiary); font-variant-numeric: tabular-nums; }
+.dgp-annot-meta { font-size: 10px; color: var(--dsw-alias-label-tertiary); }
 .dgp-compact .dgp-header-meta .dgp-pill { display: none; }
 .dgp-compact .dgp-header { padding: 7px 9px; }
 .dgp-compact .dgp-tab { padding-left: 6px; padding-right: 6px; }
@@ -838,6 +1183,95 @@ window.__ModuleLoader__.load({
 
     function Spinner({ tr }) {
       return h('div', { className: 'dgp-loading' }, h('span', { className: 'dgp-spinner' }), tr('loading'));
+    }
+
+    /** Modal shell used by the push/pull and hunk-confirm flows. */
+    function Modal({ title, tr, children, onClose }) {
+      const onKeyDown = (event) => {
+        if (event.key === 'Escape') onClose();
+      };
+      return h(
+        'div',
+        { className: 'dgp-overlay', onClick: (event) => { if (event.target === event.currentTarget) onClose(); } },
+        h(
+          'div',
+          { className: 'dgp-modal', role: 'dialog', 'aria-modal': true, 'aria-label': title, onKeyDown, tabIndex: -1 },
+          h('div', { className: 'dgp-modal-title' }, title),
+          children,
+        ),
+      );
+    }
+
+    function SyncDialog({ mode, tr, hasUpstream, busy, onClose, onSubmit }) {
+      const [upstream, setUpstream] = React.useState(!hasUpstream);
+      const [force, setForce] = React.useState(false);
+      const [tags, setTags] = React.useState(false);
+      const [rebase, setRebase] = React.useState(false);
+      const [autoStash, setAutoStash] = React.useState(true);
+      const isPush = mode === 'push';
+      return h(
+        Modal,
+        { title: isPush ? tr('push.title') : tr('pull.title'), tr, onClose },
+        isPush
+          ? h(
+              React.Fragment,
+              null,
+              h(
+                'label',
+                { className: 'dgp-check' },
+                h('input', { type: 'checkbox', checked: upstream, onChange: (event) => setUpstream(event.target.checked) }),
+                tr('push.upstream'),
+              ),
+              h(
+                'label',
+                { className: 'dgp-check' },
+                h('input', { type: 'checkbox', checked: force, onChange: (event) => setForce(event.target.checked) }),
+                tr('push.force'),
+              ),
+              h(
+                'label',
+                { className: 'dgp-check' },
+                h('input', { type: 'checkbox', checked: tags, onChange: (event) => setTags(event.target.checked) }),
+                tr('push.tags'),
+              ),
+            )
+          : h(
+              React.Fragment,
+              null,
+              h(
+                'label',
+                { className: 'dgp-check' },
+                h('input', { type: 'checkbox', checked: rebase, onChange: (event) => setRebase(event.target.checked) }),
+                tr('pull.rebase'),
+              ),
+              h(
+                'label',
+                { className: 'dgp-check' },
+                h('input', { type: 'checkbox', checked: autoStash, onChange: (event) => setAutoStash(event.target.checked) }),
+                tr('pull.autostash'),
+              ),
+            ),
+        h(
+          'div',
+          { className: 'dgp-modal-actions' },
+          h('button', { type: 'button', className: 'dgp-btn ghost', onClick: onClose }, tr('action.cancel')),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'dgp-btn primary',
+              disabled: busy,
+              onClick: () =>
+                onSubmit(
+                  isPush
+                    ? { setUpstream: upstream, force, tags }
+                    : { rebase, autoStash },
+                ),
+            },
+            busy ? tr('common.working') : isPush ? tr('action.push') : tr('action.pull'),
+          ),
+        ),
+      );
     }
 
     function Empty({ icon, title, hint }) {
@@ -1160,7 +1594,7 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ */
 
     function CommitDetail(props) {
-      const { sessionId, cwd, repoRoot, hash, tr, onClose, onSelectCommit, onHistory, onBlame, webUrl, compact } = props;
+      const { sessionId, cwd, repoRoot, hash, tr, onClose, onSelectCommit, onHistory, onBlame, webUrl, compact, onAction, onCreateTag } = props;
       const [commit, setCommit] = React.useState(null);
       const [error, setError] = React.useState('');
       const [loading, setLoading] = React.useState(true);
@@ -1310,6 +1744,53 @@ window.__ModuleLoader__.load({
                         tr('action.blame'),
                       )
                     : null,
+                  onAction
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'dgp-btn ghost',
+                          title: tr('action.cherryPick'),
+                          onClick: () => onAction('cherryPick', { target: commit.hash }),
+                        },
+                        tr('action.cherryPick'),
+                      )
+                    : null,
+                  onAction
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'dgp-btn ghost',
+                          title: tr('action.revert'),
+                          onClick: () => onAction('revert', { target: commit.hash }),
+                        },
+                        tr('action.revert'),
+                      )
+                    : null,
+                  onAction && commit.parents?.length > 0
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'dgp-btn ghost',
+                          title: tr('action.merge'),
+                          onClick: () => onAction('merge', { target: commit.hash }),
+                        },
+                        tr('action.merge'),
+                      )
+                    : null,
+                  onAction
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'dgp-btn ghost',
+                          onClick: () => onCreateTag?.(commit.hash),
+                        },
+                        tr('tags.create'),
+                      )
+                    : null,
                 ),
               ),
               body ? h('div', { className: 'dgp-commitbody' }, body) : null,
@@ -1389,7 +1870,7 @@ window.__ModuleLoader__.load({
     /* Changes                                                            */
     /* ------------------------------------------------------------------ */
 
-    function FileRow({ entry, tr, onOpen, onStage, onUnstage, onDiscard, selected }) {
+    function FileRow({ entry, tr, onOpen, onStage, onUnstage, onDiscard, onHunks, selected }) {
       const letter = statusLetter(entry);
       return h(
         'div',
@@ -1409,16 +1890,205 @@ window.__ModuleLoader__.load({
           !entry.staged || entry.untracked
             ? h(MiniButton, { title: tr('action.stage'), onClick: onStage, icon: h(IconPlus) })
             : null,
-          h(MiniButton, { title: tr('action.discard'), danger: true, onClick: onDiscard, icon: h(IconTrash) }),
+          onHunks !== undefined && !entry.untracked && !entry.conflicted
+            ? h(MiniButton, {
+                title: tr('action.hunks'),
+                onClick: (event) => {
+                  if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+                  onHunks();
+                },
+                icon: h(IconHunks),
+              })
+            : null,
+          h(MiniButton, {
+            title: tr('action.discard'),
+            danger: true,
+            onClick: (event) => {
+              if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+              onDiscard();
+            },
+            icon: h(IconTrash),
+          }),
+        ),
+      );
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Hunk staging                                                       */
+    /* ------------------------------------------------------------------ */
+
+    function HunkPanel({ sessionId, cwd, repoRoot, tr, path, scope, busy, act, onClose }) {
+      const [data, setData] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState('');
+      const [selected, setSelected] = React.useState([]);
+      const [reload, setReload] = React.useState(0);
+
+      React.useEffect(() => {
+        let alive = true;
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        api('hunks', { sessionId, cwd, repoRoot, path, scope }, controller.signal)
+          .then((value) => {
+            if (!alive) return;
+            setData(value);
+            setSelected((value.hunks ?? []).map((hunk) => hunk.index));
+          })
+          .catch((value) => {
+            if (!alive || value.name === 'AbortError') return;
+            setError(value instanceof Error ? value.message : String(value));
+          })
+          .finally(() => {
+            if (alive) setLoading(false);
+          });
+        return () => {
+          alive = false;
+          controller.abort();
+        };
+      }, [sessionId, cwd, repoRoot, path, scope, reload]);
+
+      const hunks = data?.hunks ?? [];
+      const toggle = (index) => {
+        setSelected((current) => (current.includes(index) ? current.filter((value) => value !== index) : [...current, index]));
+      };
+      const apply = async (action) => {
+        if (selected.length === 0 || busy) return;
+        const result = await act(action, { path, hunks: selected, scope });
+        if (result !== undefined) setReload((value) => value + 1);
+      };
+
+      return h(
+        'div',
+        { className: 'dgp-detail' },
+        h(
+          'div',
+          { className: 'dgp-detail-head' },
+          onClose ? h(IconButton, { title: tr('action.back'), onClick: onClose, icon: h(IconBack) }) : null,
+          h('div', { className: 'dgp-detail-title', title: path }, `${tr('hunks.title')} · ${path}`),
+        ),
+        h(
+          'div',
+          { className: 'dgp-hunk-toolbar' },
+          h('span', { className: 'dgp-muted', style: { fontSize: '10.5px' } }, tr('hunks.count').replace('{n}', String(hunks.length))),
+          h(
+            'button',
+            { type: 'button', className: 'dgp-btn ghost', onClick: () => setSelected(hunks.map((hunk) => hunk.index)) },
+            tr('hunks.selectAll'),
+          ),
+          h('button', { type: 'button', className: 'dgp-btn ghost', onClick: () => setSelected([]) }, tr('hunks.selectNone')),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'dgp-btn primary',
+              style: { marginLeft: 'auto' },
+              disabled: selected.length === 0 || busy,
+              onClick: () => apply(scope === 'staged' ? 'unstageHunks' : 'stageHunks'),
+            },
+            scope === 'staged' ? tr('hunks.unstage') : tr('hunks.applySelected'),
+          ),
+          scope !== 'staged'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'dgp-btn danger',
+                  disabled: selected.length === 0 || busy,
+                  onClick: () => {
+                    if (!confirmAsk(tr, tr('hunks.discardConfirm'))) return;
+                    apply('discardHunks');
+                  },
+                },
+                tr('hunks.discard'),
+              )
+            : null,
+        ),
+        error ? h(ErrorBar, { message: error, tr, onRetry: () => setReload((value) => value + 1) }) : null,
+        loading ? h(Spinner, { tr }) : null,
+        !loading && hunks.length === 0 && !error ? h(Empty, { icon: h(IconHunks, { size: 26 }), title: tr('hunks.empty') }) : null,
+        h(
+          'div',
+          { className: 'dgp-scroll' },
+          hunks.map((hunk) =>
+            h(
+              'div',
+              { key: hunk.index, className: 'dgp-hunk' },
+              h(
+                'div',
+                { className: 'dgp-hunk-head' },
+                h('input', {
+                  type: 'checkbox',
+                  checked: selected.includes(hunk.index),
+                  onChange: () => toggle(hunk.index),
+                  'aria-label': hunk.header,
+                }),
+                h('span', { className: 'dgp-hunk-label' }, hunk.header.replace(/^@@ /, '').replace(/ @@.*$/, '')),
+                h(FileStats, { additions: hunk.additions, deletions: hunk.deletions }),
+                h(
+                  'span',
+                  { className: 'dgp-hunk-actions' },
+                  h(MiniButton, {
+                    title: scope === 'staged' ? tr('hunks.unstage') : tr('hunks.stage'),
+                    disabled: busy,
+                    onClick: async () => {
+                      if (busy) return;
+                      const result = await act(scope === 'staged' ? 'unstageHunks' : 'stageHunks', {
+                        path,
+                        hunks: [hunk.index],
+                        scope,
+                      });
+                      if (result !== undefined) setReload((value) => value + 1);
+                    },
+                    icon: scope === 'staged' ? h(IconMinus, { size: 12 }) : h(IconPlus, { size: 12 }),
+                  }),
+                  scope !== 'staged'
+                    ? h(MiniButton, {
+                        title: tr('hunks.discard'),
+                        danger: true,
+                        disabled: busy,
+                        onClick: async () => {
+                          if (busy || !confirmAsk(tr, tr('hunks.discardConfirm'))) return;
+                          const result = await act('discardHunks', { path, hunks: [hunk.index], scope });
+                          if (result !== undefined) setReload((value) => value + 1);
+                        },
+                        icon: h(IconTrash, { size: 12 }),
+                      })
+                    : null,
+                ),
+              ),
+              h(
+                'div',
+                { className: 'dgp-hunk-lines' },
+                hunk.lines.split('\n').map((line, index) =>
+                  h(
+                    'div',
+                    {
+                      key: index,
+                      className: cx(
+                        'dgp-diffline',
+                        line.startsWith('+') ? 'add' : line.startsWith('-') ? 'del' : 'ctx',
+                      ),
+                      style: { minWidth: 'max-content' },
+                    },
+                    h('span', { className: 'dgp-code' }, line === '' ? ' ' : line),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       );
     }
 
     function ChangesView(props) {
-      const { overview, tr, onSelectDiff, act, busy, selectedPath, wide } = props;
+      const { overview, tr, onSelectDiff, act, busy, selectedPath, wide, sessionId, cwd, repoRoot } = props;
       const [message, setMessage] = React.useState('');
       const [amend, setAmend] = React.useState(false);
       const [stageAll, setStageAll] = React.useState(false);
+      const [signoff, setSignoff] = React.useState(false);
+      const [noVerify, setNoVerify] = React.useState(false);
+      const [hunkTarget, setHunkTarget] = React.useState(null);
       const entries = overview?.status?.entries ?? [];
       const summary = overview?.status?.summary ?? { staged: 0, unstaged: 0, untracked: 0, conflicted: 0, total: 0 };
 
@@ -1439,7 +2109,7 @@ window.__ModuleLoader__.load({
 
       const submit = async () => {
         if (!canCommit || busy) return;
-        const value = await act('commit', { message: message.trim(), amend, all: stageAll });
+        const value = await act('commit', { message: message.trim(), amend, all: stageAll, signoff, noVerify });
         if (value !== undefined) {
           setMessage('');
           setAmend(false);
@@ -1502,6 +2172,10 @@ window.__ModuleLoader__.load({
                       onOpen: () => onSelectDiff({ scope: group.scope, path: entry.path }),
                       onStage: () => act('stage', { paths: [entry.path] }),
                       onUnstage: () => act('unstage', { paths: [entry.path] }),
+                      onHunks:
+                        group.scope === 'untracked' || entry.binary
+                          ? undefined
+                          : () => setHunkTarget({ path: entry.path, scope: group.scope }),
                       onDiscard: () => {
                         if (!confirmAsk(tr, tr('action.discardConfirm'))) return;
                         act('discard', { paths: [entry.path] });
@@ -1538,6 +2212,18 @@ window.__ModuleLoader__.load({
               tr('changes.stageAll'),
             ),
             h(
+              'label',
+              { className: 'dgp-check' },
+              h('input', { type: 'checkbox', checked: signoff, onChange: (event) => setSignoff(event.target.checked) }),
+              tr('signoff'),
+            ),
+            h(
+              'label',
+              { className: 'dgp-check' },
+              h('input', { type: 'checkbox', checked: noVerify, onChange: (event) => setNoVerify(event.target.checked) }),
+              tr('noVerify'),
+            ),
+            h(
               'button',
               {
                 type: 'button',
@@ -1550,6 +2236,27 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
+        hunkTarget !== null
+          ? h(
+              'div',
+              { className: 'dgp-overlay' },
+              h(
+                'div',
+                { className: 'dgp-modal', style: { width: 'min(760px, 100%)', maxHeight: '78vh', padding: 0, overflow: 'hidden' } },
+                h(HunkPanel, {
+                  sessionId,
+                  cwd,
+                  repoRoot,
+                  tr,
+                  path: hunkTarget.path,
+                  scope: hunkTarget.scope,
+                  busy,
+                  act,
+                  onClose: () => setHunkTarget(null),
+                }),
+              ),
+            )
+          : null,
       );
     }
 
@@ -1722,7 +2429,7 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ */
 
     function BranchesView(props) {
-      const { sessionId, cwd, repoRoot, tr, act, busy, refreshKey } = props;
+      const { sessionId, cwd, repoRoot, tr, act, busy, refreshKey, onCompare } = props;
       const [data, setData] = React.useState({ local: [], remote: [] });
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState('');
@@ -1849,9 +2556,20 @@ window.__ModuleLoader__.load({
                       item.current
                         ? null
                         : h(MiniButton, {
+                            title: tr('action.merge'),
+                            onClick: (event) => {
+                              if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+                              act('merge', { target: item.name });
+                            },
+                            icon: h(IconCompare),
+                          }),
+                      item.current
+                        ? null
+                        : h(MiniButton, {
                             title: tr('action.delete'),
                             danger: true,
-                            onClick: () => {
+                            onClick: (event) => {
+                              if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
                               if (!confirmAsk(tr, tr('action.deleteConfirm'))) return;
                               act('deleteBranch', { name: item.name });
                             },
@@ -1877,6 +2595,18 @@ window.__ModuleLoader__.load({
                       { className: 'dgp-branchrow-main' },
                       h('div', { className: 'dgp-branchrow-name' }, item.name),
                       h('div', { className: 'dgp-branchrow-sub' }, item.subject || ' '),
+                    ),
+                    h(
+                      'span',
+                      { className: 'dgp-branchrow-actions' },
+                      h(MiniButton, {
+                        title: tr('action.compare'),
+                        onClick: (event) => {
+                          if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+                          onCompare?.(item.name);
+                        },
+                        icon: h(IconCompare),
+                      }),
                     ),
                   ),
                 ),
@@ -2165,8 +2895,419 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ */
+    /* Commit graph                                                       */
+    /* ------------------------------------------------------------------ */
+
+    const LANE_WIDTH = 14;
+    const ROW_HEIGHT = 26;
+    /** Rows fetched per graph page; the host caps the ceiling. */
+    const GRAPH_PAGE = 300;
+
+    /**
+     * Draw the lane swatch for one row.
+     *
+     * Each row is its own SVG so the browser can skip painting rows outside
+     * the viewport. Lines are drawn from the row's vertical centre to the
+     * edges, which makes consecutive rows join into continuous lanes.
+     */
+    function GraphLanes({ row, width }) {
+      const lanes = Math.max(width, row.totalLanes, 1);
+      const svgWidth = lanes * LANE_WIDTH + 6;
+      const mid = ROW_HEIGHT / 2;
+      const x = (lane) => lane * LANE_WIDTH + LANE_WIDTH / 2 + 3;
+      const parts = [];
+      // Lanes that pass straight through this row.
+      const before = row.edges.before;
+      const after = row.edges.after;
+      for (let lane = 0; lane < Math.max(before.length, after.length); lane += 1) {
+        const isSelf = lane === row.lane;
+        if (isSelf) continue;
+        const through = before[lane] !== undefined && before[lane] === after[lane];
+        if (!through) continue;
+        parts.push(
+          h('line', {
+            key: `t${lane}`,
+            x1: x(lane), y1: 0, x2: x(lane), y2: ROW_HEIGHT,
+            stroke: laneColor(lane), strokeWidth: 1.6, opacity: 0.75,
+          }),
+        );
+      }
+      // Parents heading down-right out of this row.
+      for (let index = 1; index < row.parentLanes.length; index += 1) {
+        const parentLane = row.parentLanes[index];
+        parts.push(
+          h('path', {
+            key: `p${index}`,
+            d: `M${x(row.lane)} ${mid} C ${x(row.lane)} ${mid + 7}, ${x(parentLane)} ${mid + 6}, ${x(parentLane)} ${ROW_HEIGHT}`,
+            stroke: laneColor(parentLane), strokeWidth: 1.6, fill: 'none', opacity: 0.8,
+          }),
+        );
+      }
+      // A lane that ends here because its commit was merged away.
+      for (let lane = 0; lane < before.length; lane += 1) {
+        if (lane === row.lane) continue;
+        if (before[lane] === undefined || after[lane] !== undefined) continue;
+        parts.push(
+          h('path', {
+            key: `m${lane}`,
+            d: `M${x(lane)} 0 C ${x(lane)} ${mid - 6}, ${x(row.lane)} ${mid - 6}, ${x(row.lane)} ${mid}`,
+            stroke: laneColor(lane), strokeWidth: 1.6, fill: 'none', opacity: 0.8,
+          }),
+        );
+      }
+      // The connector to the first parent keeps the row visually joined.
+      if (row.parents.length > 0) {
+        parts.push(
+          h('line', {
+            key: 'self',
+            x1: x(row.lane), y1: mid, x2: x(row.lane), y2: ROW_HEIGHT,
+            stroke: laneColor(row.lane), strokeWidth: 1.6, opacity: 0.85,
+          }),
+        );
+      }
+      parts.push(
+        h('circle', {
+          key: 'node',
+          cx: x(row.lane), cy: mid, r: row.parents.length > 1 ? 3.6 : 3.1,
+          fill: laneColor(row.lane), stroke: 'var(--dsw-alias-bg-base)', strokeWidth: 1.4,
+        }),
+      );
+      return h('svg', { className: 'dgp-graph-gutter', width: svgWidth, height: ROW_HEIGHT, viewBox: `0 0 ${svgWidth} ${ROW_HEIGHT}`, 'aria-hidden': true }, ...parts);
+    }
+
+    function GraphRow({ row, width, tr, selected, onClick }) {
+      return h(
+        'div',
+        { className: cx('dgp-graph-row', selected && 'selected'), onClick, title: `${row.short} ${row.subject}` },
+        h(GraphLanes, { row, width }),
+        h(
+          'div',
+          { className: 'dgp-graph-body' },
+          row.refs.length > 0 ? h('span', { className: 'dgp-graph-refs' }, h(RefChips, { refs: row.refs })) : null,
+          h('span', { className: 'dgp-graph-subject' }, row.subject || '(no subject)'),
+          h(
+            'span',
+            { className: 'dgp-graph-meta' },
+            h('span', { className: 'dgp-graph-hash' }, row.short),
+            h('span', { title: fullTime(row.time) }, relTime(row.time, tr)),
+            h('span', { title: row.author }, (row.author || tr('common.unknown')).slice(0, 16)),
+          ),
+        ),
+      );
+    }
+
+    function GraphView(props) {
+      const { sessionId, cwd, repoRoot, tr, selectedHash, onSelectCommit, refreshKey } = props;
+      const [data, setData] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState('');
+      const [all, setAll] = React.useState(true);
+      const [reload, setReload] = React.useState(0);
+      const [limit, setLimit] = React.useState(GRAPH_PAGE);
+      const [loadingMore, setLoadingMore] = React.useState(false);
+
+      React.useEffect(() => {
+        setLimit(GRAPH_PAGE);
+      }, [all, repoRoot]);
+
+      React.useEffect(() => {
+        let alive = true;
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        api('graph', { sessionId, cwd, repoRoot, limit, all }, controller.signal)
+          .then((value) => {
+            if (alive) setData(value);
+          })
+          .catch((value) => {
+            if (!alive || value.name === 'AbortError') return;
+            setError(value instanceof Error ? value.message : String(value));
+          })
+          .finally(() => {
+            if (alive) setLoading(false);
+          });
+        return () => {
+          alive = false;
+          controller.abort();
+        };
+      }, [sessionId, cwd, repoRoot, all, refreshKey, reload, limit]);
+
+      const graph = React.useMemo(() => assignLanes(data?.commits ?? []), [data]);
+      const loadMore = () => {
+        if (loadingMore) return;
+        setLoadingMore(true);
+        setLimit((value) => value + GRAPH_PAGE);
+      };
+      React.useEffect(() => {
+        if (loading) setLoadingMore(false);
+      }, [loading]);
+
+      return h(
+        'div',
+        { className: 'dgp-graph' },
+        h(
+          'div',
+          { className: 'dgp-graph-toolbar' },
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'dgp-btn ghost',
+              onClick: () => setAll((value) => !value),
+              title: all ? tr('graph.showCurrent') : tr('graph.showAll'),
+            },
+            h(IconGraph),
+            all ? tr('graph.all') : tr('graph.current'),
+          ),
+          h('span', { className: 'dgp-muted', style: { fontSize: '10.5px' } }, tr('graph.lanes').replace('{n}', String(graph.width))),
+          h(IconButton, { title: tr('refresh'), onClick: () => setReload((value) => value + 1), icon: h(IconRefresh) }),
+        ),
+        error ? h(ErrorBar, { message: error, tr, onRetry: () => setReload((value) => value + 1) }) : null,
+        loading && !data ? h(Spinner, { tr }) : null,
+        !loading && data && (data.commits ?? []).length === 0 ? h(Empty, { icon: h(IconGraph, { size: 28 }), title: tr('graph.empty') }) : null,
+        data && (data.commits ?? []).length > 0
+          ? h(
+              'div',
+              { className: 'dgp-graph-scroll' },
+              graph.rows.map((row) =>
+                h(GraphRow, {
+                  key: row.hash,
+                  row,
+                  width: graph.width,
+                  tr,
+                  selected: row.hash === selectedHash,
+                  onClick: () => onSelectCommit(row.hash),
+                }),
+              ),
+              data.hasMore
+                ? h(
+                    'div',
+                    { className: 'dgp-more' },
+                    h(
+                      'button',
+                      { type: 'button', className: 'dgp-btn ghost', onClick: loadMore, disabled: loadingMore },
+                      loadingMore ? tr('loading') : tr('action.loadMore'),
+                    ),
+                  )
+                : null,
+            )
+          : null,
+      );
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Tags                                                               */
+    /* ------------------------------------------------------------------ */
+
+    function TagsView(props) {
+      const { sessionId, cwd, repoRoot, tr, act, busy, refreshKey, onSelectCommit, seed, onSeedConsumed } = props;
+      const [tags, setTags] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState('');
+      const [name, setName] = React.useState('');
+      const [target, setTarget] = React.useState('');
+      const [message, setMessage] = React.useState('');
+      const [deleteRemote, setDeleteRemote] = React.useState(false);
+      const [reload, setReload] = React.useState(0);
+
+      React.useEffect(() => {
+        if (typeof seed === 'string' && seed !== '') {
+          setTarget(seed);
+          onSeedConsumed?.();
+        }
+      }, [seed]);
+
+      React.useEffect(() => {
+        let alive = true;
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        api('tags', { sessionId, cwd, repoRoot }, controller.signal)
+          .then((value) => {
+            if (alive) setTags(value.tags ?? []);
+          })
+          .catch((value) => {
+            if (!alive || value.name === 'AbortError') return;
+            setError(value instanceof Error ? value.message : String(value));
+          })
+          .finally(() => {
+            if (alive) setLoading(false);
+          });
+        return () => {
+          alive = false;
+          controller.abort();
+        };
+      }, [sessionId, cwd, repoRoot, refreshKey, reload]);
+
+      const create = async () => {
+        const value = name.trim();
+        if (value === '' || busy) return;
+        const result = await act('createTag', {
+          name: value,
+          ...(target.trim() !== '' ? { target: target.trim() } : {}),
+          ...(message.trim() !== '' ? { message: message.trim() } : {}),
+        });
+        if (result !== undefined) {
+          setName('');
+          setTarget('');
+          setMessage('');
+          setReload((current) => current + 1);
+        }
+      };
+
+      return h(
+        React.Fragment,
+        null,
+        h(
+          'div',
+          { className: 'dgp-toolbar' },
+          h(
+            'label',
+            { className: 'dgp-check' },
+            h('input', { type: 'checkbox', checked: deleteRemote, onChange: (event) => setDeleteRemote(event.target.checked) }),
+            tr('tags.deleteRemote'),
+          ),
+          h(IconButton, { title: tr('refresh'), onClick: () => setReload((value) => value + 1), icon: h(IconRefresh) }),
+        ),
+        h(
+          'div',
+          { className: 'dgp-createbar' },
+          h('input', {
+            className: 'dgp-input',
+            value: name,
+            placeholder: tr('tags.name'),
+            onChange: (event) => setName(event.target.value),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter') create();
+            },
+          }),
+          h('input', {
+            className: 'dgp-input',
+            value: target,
+            placeholder: tr('tags.target'),
+            onChange: (event) => setTarget(event.target.value),
+            style: { flex: '0 0 120px' },
+          }),
+          h('input', {
+            className: 'dgp-input',
+            value: message,
+            placeholder: tr('tags.message'),
+            onChange: (event) => setMessage(event.target.value),
+            style: { flex: '0 0 140px' },
+          }),
+          h('button', { type: 'button', className: 'dgp-btn', onClick: create, disabled: busy || name.trim() === '' }, h(IconPlus), tr('tags.create')),
+        ),
+        error ? h(ErrorBar, { message: error, tr, onRetry: () => setReload((value) => value + 1) }) : null,
+        h(
+          'div',
+          { className: 'dgp-scroll' },
+          loading ? h(Spinner, { tr }) : null,
+          !loading && tags.length === 0 ? h(Empty, { icon: h(IconTag, { size: 28 }), title: tr('tags.empty'), hint: tr('tags.hint') }) : null,
+          tags.map((tag) =>
+            h(
+              'div',
+              { key: tag.refname, className: 'dgp-tagrow' },
+              h(IconTag, { size: 14 }),
+              h(
+                'div',
+                { className: 'dgp-tagrow-main' },
+                h(
+                  'div',
+                  { className: 'dgp-tagrow-name' },
+                  tag.name,
+                  h('span', { className: cx('dgp-tagkind', tag.annotated ? 'annotated' : 'lightweight') }, tag.annotated ? tr('tags.annotated') : tr('tags.lightweight')),
+                ),
+                h(
+                  'div',
+                  { className: 'dgp-tagrow-sub' },
+                  `${tag.short} · `,
+                  tag.subject || tr('common.noData'),
+                  tag.time ? ` · ${relTime(tag.time, tr)}` : '',
+                ),
+              ),
+              h(
+                'div',
+                { className: 'dgp-tagrow-actions' },
+                h(MiniButton, {
+                  title: tr('action.checkout'),
+                  onClick: () => {
+                    if (!confirmAsk(tr, tr('tags.detachedHint'))) return;
+                    act('checkout', { branch: tag.name });
+                  },
+                  icon: h(IconBranch, { size: 13 }),
+                }),
+                h(MiniButton, {
+                  title: tr('action.delete'),
+                  danger: true,
+                  onClick: () => {
+                    if (!confirmAsk(tr, tr('tags.deleteConfirm'))) return;
+                    act('deleteTag', { name: tag.name, remote: deleteRemote }).then(() => setReload((value) => value + 1));
+                  },
+                  icon: h(IconTrash),
+                }),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Blame                                                              */
     /* ------------------------------------------------------------------ */
+
+    function BlameAnnotation({ annotation, tr, onSelectCommit }) {
+      const ageMonths = Math.max(0, Math.round((Date.now() - (annotation.newest || Date.now())) / 2_592_000_000));
+      return h(
+        'div',
+        { className: 'dgp-annot' },
+        h(
+          'div',
+          { className: 'dgp-annot-top' },
+          h('span', { className: 'dgp-annot-title' }, tr('annot.summary')),
+          h('span', { className: 'dgp-muted', style: { fontSize: '10.5px' } }, tr('annot.lines').replace('{n}', String(annotation.total))),
+        ),
+        h(
+          'div',
+          { className: 'dgp-annot-strip', title: tr('annot.strip') },
+          annotation.buckets.map((value, index) =>
+            h('span', {
+              key: index,
+              className: 'dgp-annot-cell',
+              style: { opacity: value === 0 ? 0.12 : 0.25 + 0.75 * (value / annotation.peak) },
+            }),
+          ),
+        ),
+        h(
+          'div',
+          { className: 'dgp-annot-people' },
+          annotation.authors.map((entry) =>
+            h(
+              'button',
+              {
+                key: `${entry.email}:${entry.author}`,
+                type: 'button',
+                className: 'dgp-annot-person',
+                title: `${entry.author || tr('common.unknown')} · ${annotation.share(entry)}%`,
+                onClick: () => {
+                  const first = annotation.firstHashOf?.(entry);
+                  if (first) onSelectCommit?.(first);
+                },
+              },
+              h(Avatar, { name: entry.author }),
+              h('span', { className: 'dgp-annot-name' }, entry.author || tr('common.unknown')),
+              h('span', { className: 'dgp-annot-share' }, `${annotation.share(entry)}%`),
+            ),
+          ),
+        ),
+        h(
+          'div',
+          { className: 'dgp-annot-meta' },
+          `${tr('annot.newest')}: ${relTime(annotation.newest, tr) || tr('common.noData')}`,
+          ageMonths > 0 ? ` · ${tr('annot.oldest')}: ${shortDate(annotation.oldest)}` : '',
+        ),
+      );
+    }
 
     function BlameView(props) {
       const { sessionId, cwd, repoRoot, tr, initialPath, onSelectCommit } = props;
@@ -2177,6 +3318,7 @@ window.__ModuleLoader__.load({
       const [files, setFiles] = React.useState([]);
       const [loading, setLoading] = React.useState(false);
       const [error, setError] = React.useState('');
+      const [lineHistoryOpen, setLineHistoryOpen] = React.useState(false);
 
       React.useEffect(() => {
         let alive = true;
@@ -2225,6 +3367,7 @@ window.__ModuleLoader__.load({
       }, [initialPath]);
 
       const lines = data?.lines ?? [];
+      const annotation = React.useMemo(() => summarizeBlame(lines), [lines]);
 
       return h(
         React.Fragment,
@@ -2248,6 +3391,12 @@ window.__ModuleLoader__.load({
             h('input', { className: 'dgp-input', value: start, placeholder: tr('blame.start'), style: { flex: '0 0 66px' }, onChange: (event) => setStart(event.target.value) }),
             h('input', { className: 'dgp-input', value: end, placeholder: tr('blame.end'), style: { flex: '0 0 66px' }, onChange: (event) => setEnd(event.target.value) }),
             h('button', { type: 'button', className: 'dgp-btn', onClick: () => run(), disabled: loading || path.trim() === '' }, h(IconBlame), tr('blame.load')),
+            h(MiniButton, {
+              title: tr('action.lineHistory'),
+              disabled: start.trim() === '' || path.trim() === '',
+              onClick: () => setLineHistoryOpen(true),
+              icon: h(IconGraph),
+            }),
           ),
           h(
             'datalist',
@@ -2256,6 +3405,7 @@ window.__ModuleLoader__.load({
           ),
         ),
         error ? h(ErrorBar, { message: error, tr, onRetry: () => run() }) : null,
+        annotation !== null ? h(BlameAnnotation, { annotation, tr, onSelectCommit }) : null,
         h(
           'div',
           { className: 'dgp-scroll' },
@@ -2283,7 +3433,113 @@ window.__ModuleLoader__.load({
               h('span', { className: 'dgp-blame-code' }, line.content === '' ? ' ' : line.content),
             ),
           ),
+          data?.truncated
+            ? h('div', { className: 'dgp-more dgp-muted', style: { fontSize: '10.5px' } }, tr('blame.truncated').replace('{n}', String(data.limit ?? 0)))
+            : null,
         ),
+        lineHistoryOpen
+          ? h(
+              'div',
+              { className: 'dgp-overlay' },
+              h(
+                'div',
+                { className: 'dgp-modal', style: { width: 'min(720px, 100%)', maxHeight: '76vh', padding: 0, overflow: 'hidden' } },
+                h(LineHistoryPanel, {
+                  sessionId,
+                  cwd,
+                  repoRoot,
+                  tr,
+                  path: path.trim(),
+                  start: Number.parseInt(start, 10) || 0,
+                  end: Number.parseInt(end, 10) || Number.parseInt(start, 10) || 0,
+                  onSelectCommit,
+                  onClose: () => setLineHistoryOpen(false),
+                }),
+              ),
+            )
+          : null,
+      );
+    }
+
+    function LineHistoryPanel({ sessionId, cwd, repoRoot, tr, path, start, end, onSelectCommit, onClose }) {
+      const [data, setData] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState('');
+      const [selected, setSelected] = React.useState(null);
+
+      React.useEffect(() => {
+        let alive = true;
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        api('lineHistory', { sessionId, cwd, repoRoot, path, start, end, limit: 80 }, controller.signal)
+          .then((value) => {
+            if (!alive) return;
+            setData(value);
+            setSelected(value.commits?.[0]?.hash ?? null);
+          })
+          .catch((value) => {
+            if (!alive || value.name === 'AbortError') return;
+            setError(value instanceof Error ? value.message : String(value));
+          })
+          .finally(() => {
+            if (alive) setLoading(false);
+          });
+        return () => {
+          alive = false;
+          controller.abort();
+        };
+      }, [sessionId, cwd, repoRoot, path, start, end]);
+
+      const commits = data?.commits ?? [];
+      const current = commits.find((commit) => commit.hash === selected) ?? commits[0];
+
+      return h(
+        'div',
+        { className: 'dgp-detail', style: { maxHeight: '76vh' } },
+        h(
+          'div',
+          { className: 'dgp-detail-head' },
+          h(IconButton, { title: tr('action.close'), onClick: onClose, icon: h(IconClose) }),
+          h('div', { className: 'dgp-detail-title', title: path }, `${tr('lineHistory.title').replace('{start}', String(start)).replace('{end}', String(end))} · ${path}`),
+        ),
+        error ? h(ErrorBar, { message: error, tr }) : null,
+        loading ? h(Spinner, { tr }) : null,
+        !loading && commits.length === 0 && !error ? h(Empty, { icon: h(IconGraph, { size: 26 }), title: tr('lineHistory.empty') }) : null,
+        !loading && commits.length > 0
+          ? h(
+              'div',
+              { className: 'dgp-compare-body', style: { maxHeight: '64vh' } },
+              h(
+                'div',
+                { className: 'dgp-compare-list' },
+                commits.map((commit) =>
+                  h(CommitRow, {
+                    key: commit.hash,
+                    commit,
+                    tr,
+                    selected: commit.hash === current?.hash,
+                    onClick: () => {
+                      setSelected(commit.hash);
+                      onSelectCommit(commit.hash);
+                    },
+                  }),
+                ),
+              ),
+              h(
+                'div',
+                { className: 'dgp-compare-diff' },
+                current
+                  ? h(
+                      React.Fragment,
+                      null,
+                      h('div', { className: 'dgp-diff-head' }, h('div', { className: 'dgp-diff-path' }, `${current.short} · ${current.author}`)),
+                      h(DiffLines, { patch: current.patch }),
+                    )
+                  : null,
+              ),
+            )
+          : null,
       );
     }
 
@@ -2315,6 +3571,9 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = React.useState(false);
       const [initialized, setInitialized] = React.useState(false);
       const [refreshKey, setRefreshKey] = React.useState(0);
+      const [syncDialog, setSyncDialog] = React.useState(null);
+      const [tagSeed, setTagSeed] = React.useState('');
+      const [compareSeed, setCompareSeed] = React.useState(null);
 
       const loadOverview = React.useCallback(
         async (options = {}) => {
@@ -2409,8 +3668,10 @@ window.__ModuleLoader__.load({
 
       const tabs = [
         { id: 'changes', label: tr('tabs.changes'), icon: h(IconCommit), count: summary.total },
+        { id: 'graph', label: tr('tabs.graph'), icon: h(IconGraph) },
         { id: 'history', label: tr('tabs.history'), icon: h(IconBranch) },
         { id: 'branches', label: tr('tabs.branches'), icon: h(IconBranch) },
+        { id: 'tags', label: tr('tabs.tags'), icon: h(IconTag) },
         { id: 'stashes', label: tr('tabs.stashes'), icon: h(IconStash), count: overview?.stashes ?? 0 },
         { id: 'compare', label: tr('tabs.compare'), icon: h(IconCompare) },
         { id: 'blame', label: tr('tabs.blame'), icon: h(IconBlame) },
@@ -2425,8 +3686,22 @@ window.__ModuleLoader__.load({
             act,
             busy,
             wide,
+            sessionId,
+            cwd,
+            repoRoot,
             selectedPath: selection?.kind === 'diff' ? selection.path : undefined,
             onSelectDiff: (params) => setSelection({ kind: 'diff', ...params }),
+          });
+        }
+        if (tab === 'graph') {
+          return h(GraphView, {
+            sessionId,
+            cwd,
+            repoRoot,
+            tr,
+            refreshKey,
+            selectedHash,
+            onSelectCommit: selectCommit,
           });
         }
         if (tab === 'history') {
@@ -2443,7 +3718,23 @@ window.__ModuleLoader__.load({
           });
         }
         if (tab === 'branches') {
-          return h(BranchesView, { sessionId, cwd, repoRoot, tr, act, busy, refreshKey });
+          return h(BranchesView, {
+            sessionId,
+            cwd,
+            repoRoot,
+            tr,
+            act,
+            busy,
+            refreshKey,
+            onCompare: (name) => {
+              setTab('compare');
+              setSelection(null);
+              setCompareSeed({ base: name, head: overview?.branch || 'HEAD' });
+            },
+          });
+        }
+        if (tab === 'tags') {
+          return h(TagsView, { sessionId, cwd, repoRoot, tr, act, busy, refreshKey, onSelectCommit: selectCommit, seed: tagSeed, onSeedConsumed: () => setTagSeed('') });
         }
         if (tab === 'stashes') {
           return h(StashesView, { sessionId, cwd, repoRoot, tr, act, busy, refreshKey });
@@ -2455,7 +3746,7 @@ window.__ModuleLoader__.load({
             repoRoot,
             tr,
             onSelectCommit: selectCommit,
-            defaults: { base: overview.upstream || 'HEAD~5', head: 'HEAD' },
+            defaults: compareSeed ?? { base: overview.upstream || 'HEAD~5', head: 'HEAD' },
           });
         }
         if (tab === 'blame') {
@@ -2486,6 +3777,12 @@ window.__ModuleLoader__.load({
             onSelectCommit: selectCommit,
             onHistory: openHistory,
             onBlame: openBlame,
+            onAction: (action, payload) => act(action, payload),
+            onCreateTag: (target) => {
+              setTab('tags');
+              setSelection(null);
+              setTagSeed(target);
+            },
           });
         }
         if (selection.kind === 'diff') {
@@ -2557,6 +3854,12 @@ window.__ModuleLoader__.load({
           'div',
           { className: 'dgp-header-meta' },
           summary.total > 0 ? h('span', { className: 'dgp-pill' }, `${summary.total} ${tr('common.changedFiles').replace('{n}', '')}`.trim()) : null,
+          overview?.upstream || (overview?.remotes ?? []).length > 0
+            ? h(MiniButton, { title: tr('action.pull'), onClick: () => setSyncDialog('pull'), icon: h(IconPull, { size: 13 }), disabled: busy })
+            : null,
+          overview?.upstream || (overview?.remotes ?? []).length > 0
+            ? h(MiniButton, { title: tr('action.push'), onClick: () => setSyncDialog('push'), icon: h(IconPush, { size: 13 }), disabled: busy })
+            : null,
           h(IconButton, { title: tr('refresh'), onClick: () => loadOverview(), icon: h(IconRefresh) }),
         ),
       );
@@ -2615,6 +3918,19 @@ window.__ModuleLoader__.load({
         tabBar,
         error ? h(ErrorBar, { message: error, tr, onRetry: () => loadOverview() }) : null,
         content,
+        syncDialog !== null
+          ? h(SyncDialog, {
+              mode: syncDialog,
+              tr,
+              hasUpstream: Boolean(overview?.upstream),
+              busy,
+              onClose: () => setSyncDialog(null),
+              onSubmit: async (options) => {
+                await act(syncDialog, options);
+                setSyncDialog(null);
+              },
+            })
+          : null,
       );
     }
 
@@ -2662,7 +3978,7 @@ window.__ModuleLoader__.load({
         title: () => t('sidebar.title'),
         guide: [
           {
-            id: 'gitlens',
+            id: TAB_ID,
             order: 20,
             title: () => t('guide.title'),
             description: () => t('guide.description'),

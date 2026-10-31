@@ -10,7 +10,7 @@
  * it. Repository roots and pathspecs are re-validated on the host; the browser
  * never gets to name an arbitrary directory.
  */
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -25,6 +25,10 @@ const MAX_BUFFER = 32 * 1024 * 1024;
 const MAX_PATCH_BYTES = 4 * 1024 * 1024;
 /** Largest untracked file rendered as a synthetic patch. */
 const MAX_UNTRACKED_BYTES = 768 * 1024;
+/** Blame rows returned per request, so a huge file cannot flood the browser. */
+const BLAME_LINE_LIMIT = 3000;
+/** Commit rows returned per graph request. */
+const GRAPH_COMMIT_LIMIT = 1200;
 /** Directories never descended into while discovering nested repositories. */
 const SKIP_DIRS = new Set([
   '.git', '.hg', '.svn', '.DS_Store', '.cache', '.next', '.nuxt', '.output',
@@ -786,6 +790,7 @@ async function readBlame(repoRoot, payload) {
   const result = [];
   let index = 0;
   let current = null;
+  let truncated = false;
   const meta = new Map();
   while (index < lines.length) {
     const line = lines[index];
@@ -834,12 +839,15 @@ async function readBlame(repoRoot, payload) {
       }
       result.push(current);
       current = null;
-      if (result.length >= 3000) break;
+      if (result.length >= BLAME_LINE_LIMIT) {
+        truncated = true;
+        break;
+      }
       continue;
     }
     index += 1;
   }
-  return { path: relative, lines: result };
+  return { path: relative, lines: result, truncated, limit: BLAME_LINE_LIMIT };
 }
 
 async function readBranches(repoRoot) {
@@ -908,6 +916,297 @@ function normalizeRemoteUrl(url) {
   const https = /^(https?:\/\/.+?)(?:\.git)?\/?$/.exec(url);
   if (https !== null) return https[1];
   return undefined;
+}
+
+async function readTags(repoRoot) {
+  const format = [
+    '%(refname:short)',
+    '%(objectname)',
+    '%(*objectname)',
+    '%(objecttype)',
+    '%(taggername)',
+    '%(taggerdate:unix)',
+    '%(creatordate:unix)',
+    '%(contents:subject)',
+    '%(upstream:short)',
+  ].join('%09');
+  const raw = await gitText(repoRoot, ['for-each-ref', '--sort=-creatordate', `--format=${format}`, 'refs/tags']);
+  const tags = [];
+  for (const line of raw.split('\n')) {
+    if (line === '') continue;
+    const [name, objectname, peeled, objecttype, tagger, taggerSeconds, createdSeconds, subject] = line.split('\t');
+    if (name === undefined || name === '') continue;
+    tags.push({
+      name,
+      refname: `refs/tags/${name}`,
+      hash: (peeled || objectname || '').trim(),
+      short: (peeled || objectname || '').trim().slice(0, 8),
+      annotated: objecttype === 'tag',
+      tagger: tagger ?? '',
+      time: (Number.parseInt(createdSeconds ?? taggerSeconds ?? '', 10) || 0) * 1000,
+      subject: subject ?? '',
+    });
+  }
+  return tags;
+}
+
+/**
+ * Read the commit graph in `--date-order` and hand the raw parent lists back.
+ * Lane assignment stays in the browser so the host never has to know about
+ * pixels; it only guarantees the rows are already topologically ordered.
+ */
+async function readGraph(repoRoot, options = {}) {
+  const limit = requireLimit(options.limit, 300, GRAPH_COMMIT_LIMIT);
+  const skip = Math.max(0, Number.parseInt(String(options.skip ?? 0), 10) || 0);
+  const args = ['log', '--no-color', '--date-order', `--format=${COMMIT_RECORD}`, '-n', String(limit + 1)];
+  if (skip > 0) args.push('--skip', String(skip));
+  const ref = optionalString(options, 'ref');
+  if (ref !== undefined) {
+    assertRefLike(ref);
+    args.push(ref);
+  } else if (options.all !== false) {
+    args.push('--all');
+  }
+  let raw;
+  try {
+    raw = await gitText(repoRoot, args, { timeout: 40_000 });
+  } catch (error) {
+    if (isUnbornHeadError(error)) return { commits: [], hasMore: false, unborn: true };
+    throw error;
+  }
+  const commits = [];
+  for (const record of raw.split('\x1e')) {
+    const trimmed = record.replace(/^\n+/, '');
+    if (trimmed === '') continue;
+    const fields = trimmed.split('\x1f');
+    if (fields.length < 8) continue;
+    const [hash, short, author, email, seconds, subject, refs, parents] = fields;
+    const commitRefs = (refs || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value !== '');
+    commits.push({
+      hash,
+      short,
+      author,
+      email,
+      time: Number.parseInt(seconds, 10) * 1000,
+      subject,
+      refs: commitRefs,
+      parents: (parents ?? '').split(' ').map((value) => value.trim()).filter((value) => value !== ''),
+    });
+  }
+  const hasMore = commits.length > limit;
+  if (hasMore) commits.length = limit;
+  return { commits, hasMore };
+}
+
+/** Read the history of a single line range with `git log -L`. */
+async function readLineHistory(repoRoot, payload) {
+  const relative = safeRelativePath(requireString(payload, 'path'));
+  const start = Number.parseInt(String(payload.start ?? ''), 10);
+  const end = Number.parseInt(String(payload.end ?? ''), 10);
+  if (!Number.isInteger(start) || start <= 0) throw new GitError('"start" must be a positive line number.', 'bad-request');
+  const last = Number.isInteger(end) && end >= start ? end : start;
+  if (last - start > 500) throw new GitError('Select at most 500 lines at a time.', 'bad-request');
+  const limit = requireLimit(payload.limit, 50, 200);
+  let raw;
+  try {
+    raw = await gitText(
+      repoRoot,
+      ['log', '--no-color', '-M', '-n', String(limit), `-L`, `${start},${last}:${relative}`, '--format=%x1e%H%x1f%h%x1f%an%x1f%at%x1f%s%x1f%P'],
+      { timeout: 40_000 },
+    );
+  } catch (error) {
+    if (isUnbornHeadError(error)) return { path: relative, start, end: last, commits: [], unborn: true };
+    throw error;
+  }
+  const commits = [];
+  for (const chunk of raw.split('\x1e')) {
+    const trimmed = chunk.replace(/^\n+/, '');
+    if (trimmed === '') continue;
+    const newline = trimmed.indexOf('\n');
+    const header = newline < 0 ? trimmed : trimmed.slice(0, newline);
+    const patch = newline < 0 ? '' : trimmed.slice(newline + 1).replace(/\s+$/, '');
+    const fields = header.split('\x1f');
+    if (fields.length < 5) continue;
+    const [hash, short, author, seconds, subject, parents] = fields;
+    commits.push({
+      hash,
+      short,
+      author,
+      time: (Number.parseInt(seconds ?? '', 10) || 0) * 1000,
+      subject: subject ?? '',
+      parents: (parents ?? '').split(' ').map((value) => value.trim()).filter((value) => value !== ''),
+      patch,
+    });
+  }
+  return { path: relative, start, end: last, commits };
+}
+
+/** Parse a unified patch into hunks that can be replayed as a standalone patch. */
+function parseHunks(patch) {
+  const lines = patch.split('\n');
+  let headerEnd = -1;
+  const header = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.startsWith('@@')) {
+      headerEnd = index;
+      break;
+    }
+    header.push(line);
+  }
+  if (headerEnd < 0) return { header: header.join('\n'), hunks: [] };
+  const hunks = [];
+  let current = null;
+  for (let index = headerEnd; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.startsWith('@@')) {
+      if (current !== null) hunks.push(current);
+      const match = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
+      current = {
+        index: hunks.length,
+        header: line,
+        oldStart: match ? Number.parseInt(match[1], 10) : 0,
+        oldLines: match && match[2] !== undefined ? Number.parseInt(match[2], 10) : 1,
+        newStart: match ? Number.parseInt(match[3], 10) : 0,
+        newLines: match && match[4] !== undefined ? Number.parseInt(match[4], 10) : 1,
+        lines: [],
+        additions: 0,
+        deletions: 0,
+      };
+      continue;
+    }
+    if (current === null) continue;
+    // Trailing empty strings after the final newline are not part of a hunk.
+    if (line === '' && index === lines.length - 1) continue;
+    current.lines.push(line);
+    if (line.startsWith('+')) current.additions += 1;
+    else if (line.startsWith('-')) current.deletions += 1;
+  }
+  if (current !== null) hunks.push(current);
+  const result = hunks.map((hunk) => ({
+    index: hunk.index,
+    header: hunk.header,
+    oldStart: hunk.oldStart,
+    oldLines: hunk.oldLines,
+    newStart: hunk.newStart,
+    newLines: hunk.newLines,
+    additions: hunk.additions,
+    deletions: hunk.deletions,
+    lines: hunk.lines.join('\n'),
+  }));
+  return { header: header.join('\n'), hunks: result };
+}
+
+/**
+ * Build a patch containing only the named hunks of one file.
+ * `hunks` are indices into `parseHunks(...).hunks`; an empty array means all.
+ */
+function buildHunkPatch(parsed, selected) {
+  const { header, hunks } = parsed;
+  if (hunks.length === 0) return undefined;
+  const indices = Array.isArray(selected) && selected.length > 0 ? selected : hunks.map((hunk) => hunk.index);
+  const chosen = hunks.filter((hunk) => indices.includes(hunk.index));
+  if (chosen.length === 0) return undefined;
+  return {
+    patch: [header, ...chosen.map((hunk) => [hunk.header, hunk.lines].filter((part) => part !== '').join('\n'))]
+      .filter((part) => part !== '')
+      .join('\n') + '\n',
+    hunks: chosen.map((hunk) => hunk.index),
+  };
+}
+
+/** Read one file's diff for a scope, keeping only the headers and hunks. */
+async function readFilePatch(repoRoot, scope, relative, payload) {
+  const safePath = safeRelativePath(relative);
+  const baseArgs = ['--no-color', '--no-ext-diff', '--find-renames', '--unified=3'];
+  let args;
+  if (scope === 'staged') {
+    args = ['diff', '--cached', ...baseArgs, '--', safePath];
+  } else if (scope === 'working') {
+    args = ['diff', ...baseArgs, '--', safePath];
+  } else {
+    throw new GitError(`Hunks are only supported for "working" and "staged" scopes, not "${scope}".`, 'bad-request');
+  }
+  const raw = await gitText(repoRoot, args, { timeout: 30_000 });
+  if (raw.trim() === '') return { path: safePath, header: '', hunks: [], binary: false };
+  const split = splitPatch(raw);
+  const file = split.files[0];
+  if (file === undefined) return { path: safePath, header: '', hunks: [], binary: false };
+  if (file.binary) return { path: safePath, header: '', hunks: [], binary: true, patch: file.patch };
+  const parsed = parseHunks(file.patch);
+  return {
+    path: safePath,
+    originalPath: file.originalPath,
+    header: parsed.header,
+    hunks: parsed.hunks,
+    binary: false,
+    additions: file.additions,
+    deletions: file.deletions,
+    patch: file.patch,
+  };
+}
+
+/**
+ * Run `git apply` with a patch fed over stdin.
+ *
+ * `--cached` applies against the index (staging), the `-R` combination
+ * reverses it; `--3way` lets Git fall back to a three-way merge when the
+ * working tree drifted since the hunk was read.
+ */
+async function applyPatch(repoRoot, patch, options = {}) {
+  const args = ['apply', '--whitespace=nowarn', '--recount'];
+  if (options.cached === true) args.push('--cached');
+  if (options.reverse === true) args.push('-R');
+  if (options.check === true) args.push('--check');
+  if (options.threeWay === true) args.push('--3way');
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', ['--no-pager', '-c', 'core.quotepath=false', '-C', repoRoot, ...args], {
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0', LC_ALL: 'C' },
+      windowsHide: true,
+    });
+    let stderr = '';
+    let stdout = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8'); });
+    child.stderr.on('data', (chunk) => { stderr += chunk.toString('utf8'); });
+    child.on('error', (error) => {
+      if (error && error.code === 'ENOENT') reject(new GitError('Git is not installed, or it is not on PATH.', 'git-missing'));
+      else reject(error);
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      const raw = (stderr || stdout || 'The patch could not be applied.').trim();
+      reject(new GitError(raw.length > 4000 ? `${raw.slice(0, 4000)}\n…` : raw, 'patch-failed'));
+    });
+    child.stdin.on('error', () => {});
+    child.stdin.end(patch);
+  });
+}
+
+/** Read one file's patch through a temporary body, used by the change actions. */
+async function stageHunks(repoRoot, payload, options = {}) {
+  const relative = safeRelativePath(requireString(payload, 'path'));
+  const scope = optionalString(payload, 'scope') ?? 'working';
+  const file = await readFilePatch(repoRoot, scope, relative, payload);
+  if (file.binary) throw new GitError('Binary files cannot be staged by hunk.', 'bad-request');
+  if (file.hunks.length === 0) throw new GitError('There is nothing to apply for this file.', 'bad-request');
+  const selected = Array.isArray(payload.hunks) ? payload.hunks.map((value) => Number.parseInt(String(value), 10)).filter(Number.isInteger) : [];
+  const built = buildHunkPatch({ header: file.header, hunks: file.hunks }, selected);
+  if (built === undefined) throw new GitError('No matching hunks were selected.', 'bad-request');
+  try {
+    await applyPatch(repoRoot, built.patch, options);
+  } catch (error) {
+    // `--3way` needs the pre-image in the object database, which a plain
+    // worktree discard does not have. Fall back to a strict context apply.
+    if (options.threeWay !== true || error?.code !== 'patch-failed') throw error;
+    await applyPatch(repoRoot, built.patch, { ...options, threeWay: false });
+  }
+  return { path: relative, hunks: built.hunks, scope };
 }
 
 async function buildOverview(ctx, payload) {
@@ -1073,14 +1372,31 @@ async function runAction(ctx, payload) {
       break;
     }
     case 'pull': {
-      const result = await git(repoRoot, ['pull', '--ff-only'], { timeout: 120_000 });
+      const args = ['pull'];
+      if (payload.rebase === true) args.push('--rebase');
+      else args.push('--ff-only');
+      if (payload.autoStash === true) args.push('--autostash');
+      const remote = optionalString(payload, 'remote');
+      if (remote !== undefined) args.push(remote);
+      const branch = optionalString(payload, 'branch');
+      if (branch !== undefined) args.push(branch);
+      const result = await git(repoRoot, args, { timeout: 180_000 });
       output = `${result.stdout}${result.stderr}`.trim();
       break;
     }
     case 'push': {
       const args = ['push'];
-      if (payload.setUpstream === true) args.push('-u', 'origin', 'HEAD');
-      const result = await git(repoRoot, args, { timeout: 120_000 });
+      const remote = optionalString(payload, 'remote');
+      if (payload.force === true) args.push('--force-with-lease');
+      if (payload.tags === true) args.push('--follow-tags');
+      if (payload.setUpstream === true) {
+        args.push('-u', remote ?? 'origin', 'HEAD');
+      } else {
+        if (remote !== undefined) args.push(remote);
+        const branch = optionalString(payload, 'branch');
+        if (branch !== undefined) args.push(branch);
+      }
+      const result = await git(repoRoot, args, { timeout: 180_000 });
       output = `${result.stdout}${result.stderr}`.trim();
       break;
     }
@@ -1097,6 +1413,81 @@ async function runAction(ctx, payload) {
       const ref = requireString(payload, 'ref');
       if (!/^stash@\{\d+\}$/.test(ref)) throw new GitError('Invalid stash reference.', 'bad-request');
       await git(repoRoot, ['stash', action === 'stashPop' ? 'pop' : 'drop', ref], { timeout: 60_000 });
+      break;
+    }
+    case 'stageHunks': {
+      const result = await stageHunks(repoRoot, { ...payload, scope: optionalString(payload, 'scope') ?? 'working' }, { cached: true, threeWay: true });
+      output = `staged ${result.hunks.length} hunk(s) in ${result.path}`;
+      break;
+    }
+    case 'unstageHunks': {
+      const result = await stageHunks(repoRoot, { ...payload, scope: 'staged' }, { cached: true, reverse: true, threeWay: true });
+      output = `unstaged ${result.hunks.length} hunk(s) in ${result.path}`;
+      break;
+    }
+    case 'discardHunks': {
+      const result = await stageHunks(repoRoot, { ...payload, scope: 'working' }, { reverse: true, threeWay: true });
+      output = `discarded ${result.hunks.length} hunk(s) in ${result.path}`;
+      break;
+    }
+    case 'createTag': {
+      const name = optionalString(payload, 'name') ?? optionalString(payload, 'tag');
+      if (name === undefined) throw new GitError('"name" is required.', 'bad-request');
+      try {
+        await gitTrim(repoRoot, ['check-ref-format', `refs/tags/${name}`]);
+      } catch {
+        throw new GitError(`Invalid tag name "${name}".`, 'bad-request');
+      }
+      const target = optionalString(payload, 'target') ?? 'HEAD';
+      await assertRef(repoRoot, target);
+      const message = optionalString(payload, 'message');
+      const args = ['tag'];
+      if (message !== undefined) args.push('-a', name, target, '-m', message);
+      else args.push(name, target);
+      if (payload.force === true) args.push('-f');
+      await git(repoRoot, args);
+      output = `tagged ${target} as ${name}`;
+      break;
+    }
+    case 'deleteTag': {
+      const name = requireString(payload, 'name');
+      await git(repoRoot, ['tag', '-d', '--', name]);
+      if (payload.remote === true) {
+        const remotes = await readRemotes(repoRoot);
+        const remote = remotes.find((item) => item.name === 'origin') ?? remotes[0];
+        if (remote !== undefined) {
+          await git(repoRoot, ['push', remote.name, '--delete', `refs/tags/${name}`], { timeout: 120_000 });
+        }
+      }
+      output = `deleted tag ${name}`;
+      break;
+    }
+    case 'merge': {
+      const target = requireString(payload, 'target');
+      await assertRef(repoRoot, target);
+      const args = ['merge', '--no-edit', payload.ffOnly === true ? '--ff-only' : payload.noFastForward === true ? '--no-ff' : '--ff'];
+      if (payload.squash === true) args.push('--squash');
+      args.push(target);
+      const result = await git(repoRoot, args, { timeout: 120_000 });
+      output = `${result.stdout}${result.stderr}`.trim();
+      break;
+    }
+    case 'cherryPick':
+    case 'revert': {
+      const target = requireString(payload, 'target');
+      await assertRef(repoRoot, target);
+      const args = [action === 'cherryPick' ? 'cherry-pick' : 'revert', '--no-edit'];
+      const result = await git(repoRoot, [...args, target], { timeout: 120_000 });
+      output = `${result.stdout}${result.stderr}`.trim();
+      break;
+    }
+    case 'abortOperation': {
+      const operation = optionalString(payload, 'operation') ?? 'merge';
+      if (!['merge', 'rebase', 'cherry-pick', 'revert'].includes(operation)) {
+        throw new GitError(`Unknown operation "${operation}".`, 'bad-request');
+      }
+      await git(repoRoot, [operation, '--abort']);
+      output = `aborted ${operation}`;
       break;
     }
     case 'abortMerge': {
@@ -1149,8 +1540,29 @@ async function dispatch(ctx, method, payload) {
     }
     case 'fileHistory': {
       const relative = safeRelativePath(requireString(payload, 'path'));
-      const result = await readLog(repoRoot, { ...payload, path: relative, limit: requireLimit(payload.limit, 50, 500) });
+      // `--follow` is what keeps history attached across renames; it only
+      // works for a single path, which is exactly this case.
+      const result = await readLog(repoRoot, {
+        ...payload,
+        path: relative,
+        follow: true,
+        limit: requireLimit(payload.limit, 50, 500),
+      });
       return { repoRoot, path: relative, ...result };
+    }
+    case 'lineHistory': {
+      return { repoRoot, ...(await readLineHistory(repoRoot, payload)) };
+    }
+    case 'graph': {
+      return { repoRoot, ...(await readGraph(repoRoot, payload)) };
+    }
+    case 'tags': {
+      return { repoRoot, tags: await readTags(repoRoot) };
+    }
+    case 'hunks': {
+      const relative = safeRelativePath(requireString(payload, 'path'));
+      const scope = optionalString(payload, 'scope') ?? 'working';
+      return { repoRoot, ...(await readFilePatch(repoRoot, scope, relative, payload)) };
     }
     case 'search': {
       const result = await readLog(repoRoot, { ...payload, all: true, limit: requireLimit(payload.limit, 60, 200) });
@@ -1223,6 +1635,15 @@ export const __test = {
   readRemotes,
   readFiles,
   normalizeRemoteUrl,
+  readTags,
+  readGraph,
+  readLineHistory,
+  parseHunks,
+  buildHunkPatch,
+  readFilePatch,
+  applyPatch,
+  stageHunks,
+  dispatch,
 };
 
 export function apply(ctx) {

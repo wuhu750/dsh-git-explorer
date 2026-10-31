@@ -1,7 +1,7 @@
 {
   "name": "dsh-git-explorer",
-  "version": "0.1.0",
-  "description": "Git repository explorer for DSH: status, history, branches, stashes, blame and diffs in the sidebar and in a conversation tab.",
+  "version": "0.2.0",
+  "description": "Git workbench for DSH: commit graph, status, history, branches, tags, stashes, hunk staging, blame, line history and diffs in the sidebar and in a conversation tab.",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -17,7 +17,11 @@
     "icon.svg",
     "README.md",
     "scripts/smoke.mjs",
-    "LICENSE"
+    "scripts/graph-test.mjs",
+    "scripts/render-test.mjs",
+    "scripts/route-test.mjs",
+    "LICENSE",
+    "docs/"
   ],
   "dsh": {
     "bundle": {
@@ -39,11 +43,16 @@
   "license": "MIT",
   "scripts": {
     "smoke": "node scripts/smoke.mjs",
+    "test": "node scripts/smoke.mjs && node scripts/graph-test.mjs && node scripts/render-test.mjs && node scripts/route-test.mjs",
+    "test:graph": "node scripts/graph-test.mjs",
+    "test:render": "node scripts/render-test.mjs",
+    "test:route": "node scripts/route-test.mjs",
     "pack": "npm pack"
   },
   "icon": "./icon.svg",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "keywords": [
     "dsh",
@@ -52,6 +61,18 @@
     "git",
     "scm",
     "diff",
-    "blame"
-  ]
+    "blame",
+    "commit-graph",
+    "tags",
+    "stash",
+    "hunks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wuhu750/dsh-git-explorer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wuhu750/dsh-git-explorer/issues"
+  },
+  "homepage": "https://github.com/wuhu750/dsh-git-explorer#readme"
 }

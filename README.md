@@ -1,9 +1,9 @@
 # dsh-git-explorer
 
-一个面向 DeepSeek Harness（DSH）的 Git 工作台插件。它把仓库状态、提交历史、分支、储藏、比较、逐行追溯和 diff 放进 DSH 的界面里，而不是另起一个独立窗口。
+一个面向 DeepSeek Harness（DSH）的 Git 工作台插件。它把提交图、仓库状态、提交历史、分支、标签、储藏、比较、逐行追溯和 diff 放进 DSH 的界面里，而不是另起一个独立窗口。
 
-- **侧边栏**：注册为右侧边栏的一个 tab（`gitlens` 类型），并出现在侧边栏的「工具」引导页中。
-- **会话顶部标签栏**：注册为会话的一个 View，与「对话 / 轨迹」并列，显示完整的 Git 工作台。
+- **右侧边栏**：一个 Git 面板，与文件、工具等面板并列。
+- **会话顶部标签栏**：与「对话 / 轨迹」并列的 Git 标签页，显示完整工作台。
 - **会话标题栏按钮**：一个 Git 分支图标，点击直接在右侧边栏打开 Git 面板。
 
 ## 功能
@@ -12,18 +12,29 @@
 
 - 已暂存 / 未暂存 / 未跟踪 / 冲突分组
 - 单文件或全部暂存、取消暂存、丢弃改动
+- **按块（hunk）暂存**：详情面板里逐块勾选暂存 / 取消暂存 / 丢弃，单块也能一键处理
 - 点击文件查看 unified diff，带旧/新行号、增删统计
-- 提交框支持 `⌘/Ctrl + Enter` 提交、`--amend`、提交前暂存全部改动
-- 顶部显示当前分支、领先/落后远端提交数、改动文件数
+- 提交框支持 `⌘/Ctrl + Enter` 提交、`--amend`、提交前暂存全部改动、`--signoff`、`--no-verify`
+- 顶部显示当前分支、领先/落后远端提交数、改动文件数，以及 **拉取 / 推送** 按钮
+- 拉取支持 `--rebase`、`--autostash`；推送支持 `-u`、`--force-with-lease`、`--follow-tags`
+
+### 提交图（Graph）
+
+![提交图](docs/graph-preview.png)
+
+- 车道（lane）自动分配：合并提交分叉、跨分支的边缘连线、refs 徽标
+- 顶部可切换「所有引用 / 仅当前分支」，显示车道数
+- 支持分页加载更多
+- 点击任意提交打开右侧详情；详情里可拣选、还原、合并、打标签
 
 ### 历史（History）
 
 - 提交列表：短哈希、作者、相对时间、refs（本地分支 / 远端分支 / tag）
-- 按提交信息或作者搜索（`git log --grep`），跨所有 refs
+- 按提交信息或作者搜索，跨所有 refs
 - 分页加载更多
 - 提交详情：作者、时间、完整 message、父提交跳转、refs、远端打开、复制哈希
 - 单文件 history / blame 快捷入口；文件历史可作为过滤器回填到历史列表
-- 超大提交只加载文件清单，选中文件后再按需拉取该文件的 patch，避免一次请求几百 MB
+- 超大提交只加载文件清单，选中文件后再按需拉取该文件的 diff
 
 ### 分支（Branches）
 
@@ -31,13 +42,21 @@
 - 检出本地分支
 - 远端分支自动创建同名本地跟踪分支并检出
 - 新建分支（可指定起点）
-- 删除本地分支、抓取远端（`fetch --all --prune`）
+- 删除本地分支、抓取远端
+- 把某个分支合并到当前分支，或直接跳去和当前分支做比较
+
+### 标签（Tags）
+
+- 列出轻量标签与附注标签，显示目标提交、标题、时间
+- 新建标签（可指定目标提交；填了说明就是附注标签）
+- 删除标签，可选同时删除远端标签
+- 检出标签（会提示进入游离 HEAD）
 
 ### 储藏（Stashes）
 
 - 列出储藏、相对时间、哈希
 - 保存储藏（可选包含未跟踪文件）
-- 恢复（pop）/ 删除（drop）
+- 恢复 / 删除
 
 ### 比较（Compare）
 
@@ -51,118 +70,74 @@
 - 可选起始行 / 结束行
 - 点击哈希直接打开该提交详情
 - 文件路径输入带仓库已跟踪文件补全
+- **文件注解摘要**：作者占比、最近改动时间、按提交年龄分布的热力条
+- **行历史**：选定行范围后用 `git log -L` 追这一段的改动历史，左侧列表右侧 diff
+- 逐行结果超过 3000 行会标注已截断
 
-## 架构
+## 安装
 
-```
-┌──────────────────────────── browser ────────────────────────────┐
-│ client.js                                                       │
-│  ├─ conversation.view            → 会话顶部 Git tab             │
-│  ├─ sidebar.right.pane.tab       → 右侧边栏 Git 面板             │
-│  ├─ sidebar.right.pane.tab.title → 侧边栏 tab 标题               │
-│  ├─ conversation.session.header.actions → 标题栏打开按钮         │
-│  └─ sidebarRightTabs.register    → gitlens tab 类型 + 引导页入口 │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ POST /dsh-git/api
-┌───────────────────────────────▼─────────────────────────────────┐
-│ index.js (host)                                                 │
-│  ├─ 同源校验（connection.requestRejection）                      │
-│  ├─ 会话工作区解析（sessions + workingDirectory）                │
-│  ├─ 仓库发现（含嵌套仓库，限深度与目录预算）                      │
-│  ├─ git 只读查询：overview/status/log/commit/diff/blame/...      │
-│  └─ 白名单写操作：stage/unstage/discard/commit/checkout/...      │
-└─────────────────────────────────────────────────────────────────┘
-```
+**桌面版（DeepSeek Harness.app）**：侧边栏 **插件** → **Add plugin** → **Install a third-party plugin** → 输入 `dsh-git-explorer` → **Install** → **Enable now**，然后重启应用。
 
-- 所有 Git 调用都通过 `execFile('git', [...])` 参数数组执行，不拼 shell 字符串。
-- 浏览器只能访问当前会话工作区内的仓库；仓库根、相对路径和 revision 都会在 host 重新校验。
-- `.git`、`node_modules`、`dist` 等目录不会在仓库发现时进入。
-- patch 最多返回 4 MiB，超出后截断并标记；单次 Git stdout 上限 32 MiB。
-- 所有 UI 文本走 DSH 的 locale 服务，当前提供简体中文与英文。
-
-## 作为 bundle 安装（用户不需要改 YAML）
-
-这个仓库本身就是一个 DSH bundle：
-
-- `package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`；
-- patch 只声明一行 `dsh-git-explorer`；
-- DSH 的插件管理器安装时会把包加入 profile 依赖和 `dsh.profile.bundles`，用户不需要碰 `cordis.patch.yml`。
-
-包名使用 `dsh-git-explorer`。原来的 `dsh-git-panel` 已被 npm 上的另一个项目占用，继续使用会导致按名称安装时装错包。
-
-### 方式一：从插件页安装（推荐）
-
-1. 发布到 npm，或先 `npm pack` 得到 tarball：
-   ```bash
-   npm publish
-   # 或者只生成一个可分发文件
-   npm pack
-   ```
-2. 打开 DSH 侧边栏的 **插件** 页面。
-3. 点击 **Add plugin** → **Install a third-party plugin**。
-4. 输入以下任意一种：
-   - npm 包名：`dsh-git-explorer`
-   - 绝对路径：`/Users/lch/mine/dsh-plugin/dsh-git-plugin`
-   - tarball：`/Users/lch/mine/dsh-plugin/dsh-git-plugin/dsh-git-explorer-0.1.0.tgz`
-5. 点击 **Install**，完成后点 **Enable now**。
-
-Host 代码只在 DSH 启动时装载；没有 HMR 的 profile 会提示重启，重启一次即可。之后所有会话都会自动出现侧边栏 Git tab 和会话顶部 Git tab，不需要任何 YAML 编辑。
-
-### 方式二：CLI 安装本地目录
+**命令行**（`web`、`headless` 等自建 profile）：
 
 ```bash
-dsh plugin --profile desktop add /absolute/path/to/dsh-git-plugin
+dsh plugin --profile <你的 profile> add dsh-git-explorer
 ```
 
-然后在插件页把 `dsh-git-explorer` 打开。`dsh plugin add` 只负责安装依赖；把它选入 `dsh.profile.bundles` 由插件页的开关完成，因此仍然不需要手写 YAML。
+把 `<你的 profile>` 换成实际的 profile 名，然后**完全重启 DSH**。
 
-### 开发时直接挂载单文件（仅限调试）
+装完不需要编辑任何配置文件，右侧边栏的 Git 面板、会话顶部的 Git 标签页和标题栏按钮都会自动出现。安装后必须重启一次 DSH，只刷新浏览器不够。
 
-不建议分发给用户。它绕过 bundle 机制，只能在本机使用：
+**升级**：
 
-```yaml
-- insert:
-    - id: dsh-git-explorer
-      name: '/absolute/path/to/dsh-git-plugin/index.js'
+```bash
+dsh plugin --profile <你的 profile> add dsh-git-explorer@latest
 ```
 
-### 如果改名
+**卸载**：
 
-包名同时出现在三个地方，改的时候必须一起改：
+```bash
+dsh plugin --profile <你的 profile> remove dsh-git-explorer
+```
 
-1. `package.json` 的 `name`
-2. `client.js` 里 `window.__ModuleLoader__.load({ id: ... })`
-3. `cordis.patch.yml` 的 `name`
+三点说明：
+
+- 包名是 `dsh-git-explorer`。原来的 `dsh-git-panel` 已被 npm 上的另一个项目占用，用旧名字会装错包。
+- npm 若指向国内镜像（如 `registry.npmmirror.com`），新版本发布后可能几小时内还查不到，报 404 时等镜像同步或改用官方源。
+- 不要用外部 `dsh` 命令操作 `desktop` profile：它被桌面应用独占管理，会报 `profile "desktop" is managed exclusively by the Electron application`。桌面版只走插件页。
 
 ## 验证
 
-Host 逻辑不依赖 DSH 运行时，可以直接对临时仓库做烟雾测试：
-
 ```bash
-node scripts/smoke.mjs
+npm test           # 四套全跑
+npm run smoke      # host：仓库发现、status、log、diff、blame、tags、graph、hunk
+npm run test:graph # 车道分配算法（合并、分叉、游离根、窗口边界）
+npm run test:render# 用最小 React/DOM 桩把真实组件树挂到真实仓库上，驱动各个 tab
+npm run test:route # 把 apply() 挂到真实 http.Server，用真实 fetch 打每个接口
 ```
 
-它会创建临时仓库、提交、制造 staged/unstaged/untracked 改动、创建分支，然后验证：
+- `scripts/smoke.mjs` 建临时仓库，验证 host 的读接口和 hunk 的 `git apply` 往返（含 `--follow` 跨改名、单块暂存/取消暂存）。
+- `scripts/graph-test.mjs` 从 `client.js` 里抽出 `assignLanes` 单独跑，覆盖线性历史、合并、游离根、窗口外父提交和宽度上界。
+- `scripts/render-test.mjs` 提供最小的 React hook 实现、假 DOM，并把 `fetch` 直接接到 host 的 `dispatch`，所以界面是真的在渲染、真的在读仓库；它逐一点开提交图、标签、追溯、hunk 面板和推送对话框，还会真的暂存一个块再断言索引变化（27 项）。
+- `scripts/route-test.mjs` 把 `apply()` 注册的 handler 挂到真实 `http.Server` 上，用真实 `fetch` 覆盖 18 个只读方法、hunk 往返、标签增删、储藏、路径逃逸、未知方法、工作区越界和同源守卫（38 项）。
 
-- 仓库发现
-- status 解析
-- log / commit / branches / blame / files
-- working / staged / untracked diff
-- 远端 URL 归一化
-
-界面已在 DSH Web profile 中做过端到端验证：会话顶部 Git tab、右侧边栏 tab、改动 diff、提交详情（含 3016 个文件的超大提交）、分支列表、blame 均能正常显示，控制台无插件相关报错。
-
-## 与 GitLens 的关系
-
-功能取舍参考了 GitLens 的常用工作流（Changes / Commits / Branches / Stashes / Compare / Blame、提交详情和行级归属），但代码完全独立实现：
-
-- 没有复用 GitLens 的源码、WebView、消息协议或资源；
-- 直接基于 DSH 的 Slot / Sidebar / View 扩展点与原生 Git CLI；
-- 视觉沿用 DSH 主题 token，而不是复制 VS Code 主题。
+另外在真实 DSH 实例里做过一次端到端验证：用临时 profile 加载本插件启动 `dsh --profile gitcheck`，确认 `client.js` 进入 `__DSH_BOOT__` manifest 并由 `/plugins/??...` 正确分发，`overview`/`status`/`log`/`branches`/`tags`/`graph`/`hunks` 全部返回 200，无 token 时被本插件的同源校验拦成 403。测试实例与临时 profile 已清理。
 
 ## 已知限制
 
 - 右侧边栏宽度较窄时，diff 会自动改为上下布局。
 - 改动/历史列表未做虚拟滚动；超大提交的文件清单最多渲染前 500 行，剩余数量以提示文字标出。
-- 不支持图形化 merge conflict 编辑、pull request、GitHub/GitLab API 集成和提交图车道绘制。
-- 写操作只覆盖本插件白名单内的动作，不支持任意 `git` 命令。
+- 提交图一次最多取 1200 个提交（默认 300，滚动到底加载下一页），不做窗口化虚拟滚动。
+- 没有编辑器内的 inline blame / CodeLens / 文件注解叠加层：DSH 客户端没有暴露编辑器装饰或 CodeLens 槽位（可注册的槽只有会话、侧边栏、设置、文档预览这几类），所以用「文件注解摘要 + 行历史」作为等价物。
+- 不支持图形化 merge conflict 编辑、pull request、GitHub/GitLab API 集成。
+- 交互式 rebase、AI 生成提交信息 / 解释改动 / review 仍未实现。
+- 写操作只覆盖白名单里的动作，不支持任意 `git` 命令。
+
+## 接口一览
+
+`POST /dsh-git/api/<method>`，所有请求都要带上会话工作区（`sessionId` 或 `cwd`），仓库根会在 host 重新校验。
+
+| 类别 | method |
+| --- | --- |
+| 只读 | `discover` `overview` `status` `log` `commit` `diff` `blame` `branches` `tags` `stashes` `remotes` `files` `fileHistory` `lineHistory` `graph` `hunks` `search` `compare` |
+| 写操作 | `action`，`action` 取值：`stage` `unstage` `discard` `stageHunks` `unstageHunks` `discardHunks` `commit` `checkout` `createBranch` `deleteBranch` `fetch` `pull` `push` `merge` `cherryPick` `revert` `abortOperation` `stashSave` `stashPop` `stashDrop` `createTag` `deleteTag` |
