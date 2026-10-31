@@ -128,6 +128,8 @@ window.__ModuleLoader__.load({
       'diff.binary': '二进制文件，无法显示文本差异',
       'diff.noChanges': '没有差异',
       'diff.files': '文件',
+      'diff.unified': '统一视图',
+      'diff.sideBySide': '并排视图',
       'common.unknown': '未知',
       'common.now': '刚刚',
       'common.justNow': '刚刚',
@@ -312,6 +314,8 @@ window.__ModuleLoader__.load({
       'diff.binary': 'Binary file; no textual diff',
       'diff.noChanges': 'No changes',
       'diff.files': 'Files',
+      'diff.unified': 'Unified',
+      'diff.sideBySide': 'Side-by-side',
       'common.unknown': 'Unknown',
       'common.now': 'now',
       'common.justNow': 'just now',
@@ -507,6 +511,117 @@ window.__ModuleLoader__.load({
 
     function cx(...parts) {
       return parts.filter(Boolean).join(' ');
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Resizable splits                                                   */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Track one side of a draggable split in pixels. `defaultPct` is the
+     * initial share (0-100) of the side panel measured along the drag axis,
+     * used only until the first measurement. We clamp so neither pane can be
+     * collapsed below `minPct`, and we never persist the value — a refresh
+     * returns to the default, which is predictable. `axis` is `'y'` for a
+     * top/bottom split (divider dragged vertically) or `'x'` for a left/right
+     * split (divider dragged horizontally).
+     */
+    function useSplitSize(defaultPct = 46, minPct = 18, axis = 'x') {
+      const [size, setSize] = React.useState(null);
+      const [dragging, setDragging] = React.useState(false);
+      const containerRef = React.useRef(null);
+      const sideRef = React.useRef(null);
+      const startRef = React.useRef(null);
+      const sizeRef = React.useRef(size);
+      sizeRef.current = size;
+
+      const begin = React.useCallback((event) => {
+        const container = containerRef.current;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const total = axis === 'x' ? rect.width : rect.height;
+        let initial = sizeRef.current;
+        if (initial === null) {
+          // On the first drag, measure the pane's actual size rather than
+          // jumping to the percentage default, so a vertically-split commit box
+          // (naturally short) does not snap to 42% of the viewport.
+          const side = sideRef.current;
+          if (side) {
+            const sideRect = side.getBoundingClientRect();
+            initial = axis === 'x' ? sideRect.width : sideRect.height;
+          } else {
+            initial = total * (defaultPct / 100);
+          }
+        }
+        const pos = axis === 'x' ? event.clientX : event.clientY;
+        startRef.current = { pos, initial, total };
+        setDragging(true);
+      }, [defaultPct, axis]);
+
+      const move = React.useCallback((event) => {
+        const start = startRef.current;
+        if (!start) return;
+        const pos = axis === 'x' ? event.clientX : event.clientY;
+        const delta = pos - start.pos;
+        const total = start.total;
+        const min = total * (minPct / 100);
+        const max = total * ((100 - minPct) / 100);
+        // The divider sits at the *leading* edge of the side pane (top/left of
+        // it), so dragging up/left (negative delta) must grow the side pane.
+        setSize(Math.max(min, Math.min(max, start.initial - delta)));
+      }, [minPct, axis]);
+
+      const end = React.useCallback(() => {
+        startRef.current = null;
+        setDragging(false);
+      }, []);
+
+      const reset = React.useCallback(() => setSize(null), []);
+      return { size, dragging, containerRef, sideRef, begin, move, end, reset };
+    }
+
+    /** Two-pane vertical (top/bottom) split, drag the divider between them. */
+    function SplitV({ top, bottom, sideProps }) {
+      const { size, dragging, containerRef, sideRef, begin, move, end, reset } = sideProps;
+      const style = size === null ? undefined : { flex: `0 0 ${Math.round(size)}px` };
+      return h(
+        'div',
+        {
+          className: cx('dgp-split-v', dragging && 'dragging'),
+          ref: containerRef,
+          onMouseMove: move,
+          onMouseUp: end,
+        },
+        h('div', { className: 'dgp-split-main' }, top),
+        h('div', {
+          className: cx('dgp-gutter', 'h', dragging && 'dragging'),
+          onMouseDown: begin,
+          onDoubleClick: reset,
+        }),
+        h('div', { className: 'dgp-split-side', style, ref: sideRef }, bottom),
+      );
+    }
+
+    /** Two-pane horizontal (left/right) split, drag the divider between them. */
+    function SplitH({ left, right, sideProps }) {
+      const { size, dragging, containerRef, sideRef, begin, move, end, reset } = sideProps;
+      const style = size === null ? undefined : { flex: `0 0 ${Math.round(size)}px` };
+      return h(
+        'div',
+        {
+          className: cx('dgp-split-h', dragging && 'dragging'),
+          ref: containerRef,
+          onMouseMove: move,
+          onMouseUp: end,
+        },
+        h('div', { className: 'dgp-split-main' }, left),
+        h('div', {
+          className: cx('dgp-gutter', dragging && 'dragging'),
+          onMouseDown: begin,
+          onDoubleClick: reset,
+        }),
+        h('div', { className: 'dgp-split-side', style, ref: sideRef }, right),
+      );
     }
 
     /* ------------------------------------------------------------------ */
@@ -732,6 +847,11 @@ window.__ModuleLoader__.load({
       h('path', { key: 3, d: 'M6 7l1 13h10l1-13' }),
     ], '0 0 24 24', props?.size ?? 13);
     const IconChevron = (props) => svg(h('path', { d: props?.open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6' }), '0 0 24 24', props?.size ?? 12);
+    // Column-split glyph for the unified / side-by-side diff toggle.
+    const IconColumns = (props) => svg([
+      h('rect', { key: 1, x: 4, y: 4, width: 16, height: 16, rx: 2 }),
+      h('path', { key: 2, d: 'M12 4v16' }),
+    ], '0 0 24 24', props?.size ?? 13);
     const IconGraph = (props) => svg([
       h('circle', { key: 1, cx: 6, cy: 6, r: 2.1 }),
       h('circle', { key: 2, cx: 6, cy: 18, r: 2.1 }),
@@ -879,6 +999,36 @@ window.__ModuleLoader__.load({
   flex: 0 0 54%; min-width: 0; min-height: 0; display: flex; flex-direction: column;
   border-left: .5px solid var(--dsw-alias-border-l3); overflow: hidden;
 }
+/* Resizable splits: a region plus a draggable divider. */
+.dgp-split-h { display: flex; min-width: 0; min-height: 0; overflow: hidden; flex: 1; }
+.dgp-split-v { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; flex: 1; }
+.dgp-split-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1 1 auto; }
+.dgp-split-side {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  flex: 0 0 46%; border-left: .5px solid var(--dsw-alias-border-l3);
+}
+.dgp-split-main + .dgp-gutter { border-left: none; }
+.dgp-gutter {
+  flex: 0 0 6px; margin: 0 -3px; z-index: 2; cursor: col-resize; position: relative;
+  touch-action: none; background: transparent;
+}
+.dgp-gutter::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+  transform: translateX(-50%); background: transparent; transition: background .12s ease;
+}
+.dgp-gutter:hover::after, .dgp-gutter.dragging::after { background: var(--dsw-alias-state-business-primary); }
+.dgp-gutter.h {
+  flex-basis: 6px; margin: -3px 0; cursor: row-resize;
+}
+.dgp-gutter.h::after { left: 0; right: 0; top: 50%; bottom: auto; width: auto; height: 1px; transform: translateY(-50%); }
+.dgp-split-v.dragging, .dgp-split-h.dragging { user-select: none; }
+.dgp-split-v.dragging * { cursor: row-resize !important; }
+.dgp-split-h.dragging * { cursor: col-resize !important; }
+/* Panes placed inside a resizable split fill their slot. */
+.dgp-split-main .dgp-compare-list,
+.dgp-split-side .dgp-compare-diff { flex: 1; min-height: 0; min-width: 0; }
+.dgp-split-main .dgp-compare-list { border-right: none; }
+.dgp-split-h .dgp-split-main { border-right: .5px solid var(--dsw-alias-border-l3); }
 .dgp-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .dgp-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
 .dgp-scroll::-webkit-scrollbar-thumb { background: var(--dsw-alias-scrollbar-bg-l1); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
@@ -1039,6 +1189,30 @@ window.__ModuleLoader__.load({
 .dgp-diffline.hunk .dgp-code { color: var(--dsw-alias-state-business-primary); }
 .dgp-diffline.hunk { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent); }
 .dgp-diffline.meta .dgp-code { color: var(--dsw-alias-label-tertiary); }
+/* Side-by-side diff: old file on the left, new file on the right.
+   Each column is half the width and long lines wrap inside the column
+   instead of overflowing the container. */
+.dgp-sbs-row { display: flex; width: 100%; min-width: 0; }
+.dgp-sbs-side { display: flex; flex: 1 1 0; min-width: 0; box-sizing: border-box; }
+.dgp-sbs-side + .dgp-sbs-side { border-left: .5px solid var(--dsw-alias-border-l3); }
+.dgp-sbs-side .dgp-ln { flex: none; }
+.dgp-sbs-side .dgp-code {
+  flex: 1; min-width: 0; padding-right: 16px;
+  white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere;
+}
+.dgp-sbs-side.old.hit { background: var(--dsw-alias-file-diff-deleted-bg, color-mix(in srgb, var(--dsw-alias-state-error-primary) 11%, transparent)); }
+.dgp-sbs-side.old.hit .dgp-ln { background: var(--dsw-alias-file-diff-deleted-gutter, color-mix(in srgb, var(--dsw-alias-state-error-primary) 16%, transparent)); }
+.dgp-sbs-side.new.hit { background: var(--dsw-alias-file-diff-added-bg, color-mix(in srgb, #2da44e 12%, transparent)); }
+.dgp-sbs-side.new.hit .dgp-ln { background: var(--dsw-alias-file-diff-added-gutter, color-mix(in srgb, #2da44e 16%, transparent)); }
+.dgp-sbs-row.hunk .dgp-code, .dgp-sbs-row.meta .dgp-code { color: var(--dsw-alias-state-business-primary); }
+.dgp-sbs-row.meta .dgp-code { color: var(--dsw-alias-label-tertiary); }
+.dgp-sbs-row.hunk { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent); }
+.dgp-sbs-span {
+  display: block; width: 100%; min-width: 0; padding: 0 10px 0 8px;
+  white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-tertiary);
+}
+.dgp-sbs-row.hunk .dgp-sbs-span { color: var(--dsw-alias-state-business-primary); }
 .dgp-blame-head { flex: none; padding: 8px 10px; border-bottom: .5px solid var(--dsw-alias-border-l3); display: flex; flex-direction: column; gap: 6px; }
 .dgp-blame-form { display: flex; align-items: center; gap: 6px; }
 .dgp-blame-form .dgp-input { flex: 1; }
@@ -1157,6 +1331,7 @@ window.__ModuleLoader__.load({
 .dgp-wide .dgp-scroll { scrollbar-gutter: stable; }
 .dgp-wide.dgp-has-side .dgp-main { flex: 0 0 46%; border-right: .5px solid var(--dsw-alias-border-l3); }
 .dgp-wide .dgp-side { flex: 1; border-left: none; }
+.dgp-wide .dgp-split-side { border-left: .5px solid var(--dsw-alias-border-l3); }
 .dgp-wide .dgp-diff-scroll { font-size: 12px; line-height: 19px; }
 .dgp-wide .dgp-blame-person { width: 150px; }
 @media (max-width: 720px) {
@@ -1455,8 +1630,42 @@ window.__ModuleLoader__.load({
       return rows;
     }
 
-    function DiffLines({ patch }) {
+    function DiffLines({ patch, sideBySide = false }) {
       const rows = React.useMemo(() => indexDiffLines(patch), [patch]);
+      // Both hooks must be called unconditionally: a conditional `useMemo` here
+      // changes the hook count when `sideBySide` flips and crashes real React
+      // ("Rendered more hooks than during the previous render").
+      const pairs = React.useMemo(() => (sideBySide ? pairSideBySide(rows) : null), [rows, sideBySide]);
+      if (sideBySide) {
+        return h(
+          'div',
+          { className: 'dgp-diff-scroll' },
+          pairs.map((item, index) =>
+            item.kind === 'span'
+              ? h(
+                  'div',
+                  { key: index, className: `dgp-sbs-row ${/^@@/.test(item.text) ? 'hunk' : 'meta'}` },
+                  h('span', { className: 'dgp-sbs-span' }, item.text),
+                )
+              : h(
+                  'div',
+                  { key: index, className: 'dgp-sbs-row' },
+                  h(
+                    'div',
+                    { className: cx('dgp-sbs-side', 'old', item.old.hit && 'hit') },
+                    h('span', { className: 'dgp-ln' }, item.old.num),
+                    h('span', { className: 'dgp-code' }, item.old.text === '' ? ' ' : item.old.text),
+                  ),
+                  h(
+                    'div',
+                    { className: cx('dgp-sbs-side', 'new', item.new.hit && 'hit') },
+                    h('span', { className: 'dgp-ln' }, item.new.num),
+                    h('span', { className: 'dgp-code' }, item.new.text === '' ? ' ' : item.new.text),
+                  ),
+                ),
+          ),
+        );
+      }
       return h(
         'div',
         { className: 'dgp-diff-scroll' },
@@ -1482,13 +1691,73 @@ window.__ModuleLoader__.load({
       );
     }
 
+    /**
+     * Turn a unified `indexDiffLines` row list into side-by-side pairs.
+     *
+     * Consecutive deletions and additions are aligned line-by-line so a change
+     * appears as `old` on the left and `new` on the right. Context lines span
+     * both columns (identical text), hunk/meta headers span the full width.
+     */
+    function pairSideBySide(rows) {
+      const out = [];
+      let index = 0;
+      while (index < rows.length) {
+        const row = rows[index];
+        if (row.kind === 'hunk' || row.kind === 'meta') {
+          out.push({ kind: 'span', text: row.text });
+          index += 1;
+          continue;
+        }
+        if (row.kind === 'ctx') {
+          out.push({
+            kind: 'pair',
+            old: { num: row.oldNumber, text: row.text, hit: false },
+            new: { num: row.newNumber, text: row.text, hit: false },
+          });
+          index += 1;
+          continue;
+        }
+        if (row.kind === 'del' || row.kind === 'add') {
+          // Collect a run of deletions then a run of additions.
+          const dels = [];
+          while (index < rows.length && rows[index].kind === 'del') {
+            dels.push(rows[index]);
+            index += 1;
+          }
+          const adds = [];
+          while (index < rows.length && rows[index].kind === 'add') {
+            adds.push(rows[index]);
+            index += 1;
+          }
+          const count = Math.max(dels.length, adds.length);
+          for (let pair = 0; pair < count; pair += 1) {
+            const del = dels[pair];
+            const add = adds[pair];
+            out.push({
+              kind: 'pair',
+              old: del ? { num: del.oldNumber, text: del.text.slice(1), hit: true } : { num: '', text: '', hit: false },
+              new: add ? { num: add.newNumber, text: add.text.slice(1), hit: true } : { num: '', text: '', hit: false },
+            });
+          }
+          continue;
+        }
+        // Unknown kind — treat as a full-width span.
+        out.push({ kind: 'span', text: row.text });
+        index += 1;
+      }
+      return out;
+    }
+
     function DiffView(props) {
-      const { sessionId, cwd, repoRoot, params, tr, onClose, onHistory, onBlame, onSelectCommit } = props;
+      const { sessionId, cwd, repoRoot, params, tr, onClose, onHistory, onBlame, onSelectCommit, compact } = props;
       const [data, setData] = React.useState(null);
       const [error, setError] = React.useState('');
       const [loading, setLoading] = React.useState(true);
       const [selectedPath, setSelectedPath] = React.useState(params.path ?? null);
       const [showFiles, setShowFiles] = React.useState(Boolean(params.path) === false);
+      // Side-by-side is only sensible when there is horizontal room: the wide
+      // conversation view. The compact sidebar always uses unified.
+      const [sideBySide, setSideBySide] = React.useState(compact === false);
 
       React.useEffect(() => {
         let alive = true;
@@ -1542,6 +1811,14 @@ window.__ModuleLoader__.load({
           files.length > 1
             ? h(IconButton, { title: tr('diff.files'), active: showFiles, onClick: () => setShowFiles((value) => !value), icon: h(IconChevron, { open: showFiles }) })
             : null,
+          !compact
+            ? h(IconButton, {
+                title: sideBySide ? tr('diff.unified') : tr('diff.sideBySide'),
+                active: sideBySide,
+                onClick: () => setSideBySide((value) => !value),
+                icon: h(IconColumns),
+              })
+            : null,
         ),
         error ? h(ErrorBar, { message: error, tr }) : null,
         loading ? h(Spinner, { tr }) : null,
@@ -1585,7 +1862,7 @@ window.__ModuleLoader__.load({
               ),
               selected.binary
                 ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('diff.binary') })
-                : h(DiffLines, { patch: selected.patch }),
+                : h(DiffLines, { patch: selected.patch, sideBySide }),
               data?.truncated ? h('div', { className: 'dgp-muted', style: { padding: '6px 10px', fontSize: '10.5px' } }, tr('diff.truncated')) : null,
             )
           : null,
@@ -1608,6 +1885,7 @@ window.__ModuleLoader__.load({
       const [fileLoading, setFileLoading] = React.useState(false);
       const [fileError, setFileError] = React.useState('');
       const [fileReload, setFileReload] = React.useState(0);
+      const [sideBySide, setSideBySide] = React.useState(compact === false);
 
       React.useEffect(() => {
         let alive = true;
@@ -1854,13 +2132,20 @@ window.__ModuleLoader__.load({
                       { className: 'dgp-diff-head' },
                       h('div', { className: 'dgp-diff-path', title: selectedFile.path }, selectedFile.path),
                       h(FileStats, { additions: selectedFile.additions, deletions: selectedFile.deletions }),
+                      !compact
+                        ? h(MiniButton, {
+                            title: sideBySide ? tr('diff.unified') : tr('diff.sideBySide'),
+                            onClick: () => setSideBySide((value) => !value),
+                            icon: h(IconColumns),
+                          })
+                        : null,
                     ),
                     fileError ? h(ErrorBar, { message: fileError, tr, onRetry: () => setFileReload((value) => value + 1) }) : null,
                     fileLoading ? h(Spinner, { tr }) : null,
                     !fileLoading && (selectedFile.binary || fileDiff?.binary)
                       ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('diff.binary') })
                       : !fileLoading && fileDiff
-                        ? h(DiffLines, { patch: fileDiff.patch })
+                        ? h(DiffLines, { patch: fileDiff.patch, sideBySide })
                         : null,
                   )
                 : null,
@@ -2085,7 +2370,7 @@ window.__ModuleLoader__.load({
     }
 
     function ChangesView(props) {
-      const { overview, tr, onSelectDiff, act, busy, selectedPath, wide, sessionId, cwd, repoRoot } = props;
+      const { overview, tr, onSelectDiff, act, busy, selectedPath, wide, sessionId, cwd, repoRoot, splitProps } = props;
       const [message, setMessage] = React.useState('');
       const [amend, setAmend] = React.useState(false);
       const [stageAll, setStageAll] = React.useState(false);
@@ -2151,46 +2436,48 @@ window.__ModuleLoader__.load({
               )
             : null,
         ),
-        h(
-          'div',
-          { className: 'dgp-scroll' },
-          entries.length === 0
-            ? h(Empty, { icon: h(IconCommit, { size: 28 }), title: tr('status.clean'), hint: tr('status.cleanHint') })
-            : groups.map((group) =>
-                h(
-                  React.Fragment,
-                  { key: group.key },
+        h(SplitV, {
+          sideProps: splitProps,
+          top: h(
+            'div',
+            { className: 'dgp-scroll' },
+            entries.length === 0
+              ? h(Empty, { icon: h(IconCommit, { size: 28 }), title: tr('status.clean'), hint: tr('status.cleanHint') })
+              : groups.map((group) =>
                   h(
-                    'div',
-                    { className: 'dgp-section-label' },
-                    h('span', null, group.label),
-                    h('span', { className: 'dgp-section-count' }, String(group.items.length)),
-                  ),
-                  group.items.map((entry, index) =>
-                    h(FileRow, {
-                      key: `${group.key}:${entry.path}:${index}`,
-                      entry,
-                      tr,
-                      selected: selectedPath === entry.path,
-                      onOpen: () => onSelectDiff({ scope: group.scope, path: entry.path }),
-                      onStage: () => act('stage', { paths: [entry.path] }),
-                      onUnstage: () => act('unstage', { paths: [entry.path] }),
-                      onHunks:
-                        group.scope === 'untracked' || entry.binary
-                          ? undefined
-                          : () => setHunkTarget({ path: entry.path, scope: group.scope }),
-                      onDiscard: () => {
-                        if (!confirmAsk(tr, tr('action.discardConfirm'))) return;
-                        act('discard', { paths: [entry.path] });
-                      },
-                    }),
+                    React.Fragment,
+                    { key: group.key },
+                    h(
+                      'div',
+                      { className: 'dgp-section-label' },
+                      h('span', null, group.label),
+                      h('span', { className: 'dgp-section-count' }, String(group.items.length)),
+                    ),
+                    group.items.map((entry, index) =>
+                      h(FileRow, {
+                        key: `${group.key}:${entry.path}:${index}`,
+                        entry,
+                        tr,
+                        selected: selectedPath === entry.path,
+                        onOpen: () => onSelectDiff({ scope: group.scope, path: entry.path }),
+                        onStage: () => act('stage', { paths: [entry.path] }),
+                        onUnstage: () => act('unstage', { paths: [entry.path] }),
+                        onHunks:
+                          group.scope === 'untracked' || entry.binary
+                            ? undefined
+                            : () => setHunkTarget({ path: entry.path, scope: group.scope }),
+                        onDiscard: () => {
+                          if (!confirmAsk(tr, tr('action.discardConfirm'))) return;
+                          act('discard', { paths: [entry.path] });
+                        },
+                      }),
+                    ),
                   ),
                 ),
-              ),
-        ),
-        h(
-          'div',
-          { className: 'dgp-commitbox' },
+          ),
+          bottom: h(
+            'div',
+            { className: 'dgp-commitbox' },
           h('textarea', {
             value: message,
             placeholder: tr('changes.commitPlaceholder'),
@@ -2239,6 +2526,7 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
+      }),
         hunkTarget !== null
           ? h(
               'div',
@@ -2754,6 +3042,8 @@ window.__ModuleLoader__.load({
       const [fileLoading, setFileLoading] = React.useState(false);
       const [fileError, setFileError] = React.useState('');
       const [fileReload, setFileReload] = React.useState(0);
+      const compareSplit = useSplitSize(42, 18, 'x');
+      const [sideBySide, setSideBySide] = React.useState(true);
 
       const run = async () => {
         if (base.trim() === '' || head.trim() === '' || loading) return;
@@ -2827,20 +3117,21 @@ window.__ModuleLoader__.load({
         !result && !loading && !error ? h(Empty, { icon: h(IconCompare, { size: 28 }), title: tr('compare.empty') }) : null,
         result
           ? h(
-              'div',
-              { className: 'dgp-compare-body' },
-              h(
-                'div',
-                { className: 'dgp-compare-list' },
-                result.commits?.length === 0
-                  ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('compare.noCommits') })
-                  : (result.commits ?? []).map((commit) =>
-                      h(CommitRow, { key: commit.hash, commit, tr, onClick: () => onSelectCommit(commit.hash) }),
-                    ),
-              ),
-              h(
-                'div',
-                { className: 'dgp-compare-diff' },
+              SplitH,
+              {
+                sideProps: compareSplit,
+                left: h(
+                  'div',
+                  { className: 'dgp-compare-list' },
+                  result.commits?.length === 0
+                    ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('compare.noCommits') })
+                    : (result.commits ?? []).map((commit) =>
+                        h(CommitRow, { key: commit.hash, commit, tr, onClick: () => onSelectCommit(commit.hash) }),
+                      ),
+                ),
+                right: h(
+                  'div',
+                  { className: 'dgp-compare-diff' },
                 files.length === 0
                   ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('diff.noChanges') })
                   : h(
@@ -2878,6 +3169,11 @@ window.__ModuleLoader__.load({
                               { className: 'dgp-diff-head' },
                               h('div', { className: 'dgp-diff-path' }, file.path),
                               h(FileStats, { additions: file.additions, deletions: file.deletions }),
+                              h(MiniButton, {
+                                title: sideBySide ? tr('diff.unified') : tr('diff.sideBySide'),
+                                onClick: () => setSideBySide((value) => !value),
+                                icon: h(IconColumns),
+                              }),
                             ),
                             file.binary
                               ? h(Empty, { icon: h(IconCommit, { size: 24 }), title: tr('diff.binary') })
@@ -2886,13 +3182,13 @@ window.__ModuleLoader__.load({
                                   null,
                                   fileError ? h(ErrorBar, { message: fileError, tr, onRetry: () => setFileReload((value) => value + 1) }) : null,
                                   fileLoading ? h(Spinner, { tr }) : null,
-                                  !fileLoading && fileDiff ? h(DiffLines, { patch: fileDiff.patch }) : null,
+                                  !fileLoading && fileDiff ? h(DiffLines, { patch: fileDiff.patch, sideBySide }) : null,
                                 ),
                           )
                         : null,
                     ),
               ),
-            )
+            })
           : null,
       );
     }
@@ -3469,6 +3765,8 @@ window.__ModuleLoader__.load({
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState('');
       const [selected, setSelected] = React.useState(null);
+      const lineSplit = useSplitSize(42, 18, 'x');
+      const [sideBySide, setSideBySide] = React.useState(true);
 
       React.useEffect(() => {
         let alive = true;
@@ -3511,36 +3809,47 @@ window.__ModuleLoader__.load({
         !loading && commits.length === 0 && !error ? h(Empty, { icon: h(IconGraph, { size: 26 }), title: tr('lineHistory.empty') }) : null,
         !loading && commits.length > 0
           ? h(
-              'div',
-              { className: 'dgp-compare-body', style: { maxHeight: '64vh' } },
-              h(
-                'div',
-                { className: 'dgp-compare-list' },
-                commits.map((commit) =>
-                  h(CommitRow, {
-                    key: commit.hash,
-                    commit,
-                    tr,
-                    selected: commit.hash === current?.hash,
-                    onClick: () => {
-                      setSelected(commit.hash);
-                      onSelectCommit(commit.hash);
-                    },
-                  }),
+              SplitH,
+              {
+                sideProps: lineSplit,
+                left: h(
+                  'div',
+                  { className: 'dgp-compare-list' },
+                  commits.map((commit) =>
+                    h(CommitRow, {
+                      key: commit.hash,
+                      commit,
+                      tr,
+                      selected: commit.hash === current?.hash,
+                      onClick: () => {
+                        setSelected(commit.hash);
+                        onSelectCommit(commit.hash);
+                      },
+                    }),
+                  ),
                 ),
-              ),
-              h(
-                'div',
-                { className: 'dgp-compare-diff' },
-                current
-                  ? h(
-                      React.Fragment,
-                      null,
-                      h('div', { className: 'dgp-diff-head' }, h('div', { className: 'dgp-diff-path' }, `${current.short} · ${current.author}`)),
-                      h(DiffLines, { patch: current.patch }),
-                    )
-                  : null,
-              ),
+                right: h(
+                  'div',
+                  { className: 'dgp-compare-diff' },
+                  current
+                    ? h(
+                        React.Fragment,
+                        null,
+                        h(
+                          'div',
+                          { className: 'dgp-diff-head' },
+                          h('div', { className: 'dgp-diff-path' }, `${current.short} · ${current.author}`),
+                          h(MiniButton, {
+                            title: sideBySide ? tr('diff.unified') : tr('diff.sideBySide'),
+                            onClick: () => setSideBySide((value) => !value),
+                            icon: h(IconColumns),
+                          }),
+                        ),
+                        h(DiffLines, { patch: current.patch, sideBySide }),
+                      )
+                    : null,
+                ),
+              },
             )
           : null,
       );
@@ -3577,6 +3886,10 @@ window.__ModuleLoader__.load({
       const [syncDialog, setSyncDialog] = React.useState(null);
       const [tagSeed, setTagSeed] = React.useState('');
       const [compareSeed, setCompareSeed] = React.useState(null);
+      // Resizable splits owned at the app level so their size survives tab
+      // switches and detail open/close within one mount.
+      const detailSplit = useSplitSize(54, 20, 'x');
+      const changesSplit = useSplitSize(42, 18, 'y');
 
       const loadOverview = React.useCallback(
         async (options = {}) => {
@@ -3694,6 +4007,7 @@ window.__ModuleLoader__.load({
             repoRoot,
             selectedPath: selection?.kind === 'diff' ? selection.path : undefined,
             onSelectDiff: (params) => setSelection({ kind: 'diff', ...params }),
+            splitProps: changesSplit,
           });
         }
         if (tab === 'graph') {
@@ -3900,18 +4214,17 @@ window.__ModuleLoader__.load({
         content = h(Empty, { icon: h(GitIcon, { size: 32 }), title: tr('noRepo'), hint: tr('noRepoHint') });
       } else {
         const detail = renderDetail();
-        content = h(
-          'div',
-          { className: 'dgp-body' },
-          !wide && detail
-            ? h('div', { className: 'dgp-main' }, detail)
-            : h(
-                React.Fragment,
-                null,
-                h('div', { className: 'dgp-main' }, renderTab()),
-                wide && detail ? h('div', { className: 'dgp-side' }, detail) : null,
-              ),
-        );
+        if (wide && detail) {
+          content = h(
+            'div',
+            { className: 'dgp-body' },
+            h(SplitH, { left: renderTab(), right: detail, sideProps: detailSplit }),
+          );
+        } else if (!wide && detail) {
+          content = h('div', { className: 'dgp-body' }, h('div', { className: 'dgp-main' }, detail));
+        } else {
+          content = h('div', { className: 'dgp-body' }, h('div', { className: 'dgp-main' }, renderTab()));
+        }
       }
 
       return h(

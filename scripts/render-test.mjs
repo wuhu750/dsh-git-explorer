@@ -418,6 +418,8 @@ const LABELS = {
   'action.push': 'Push',
   'tags.create': 'Create tag',
   'hunks.title': 'Stage by hunk',
+  'diff.unified': 'Unified',
+  'diff.sideBySide': 'Side-by-side',
 };
 const labelOf = (key) => LABELS[key] ?? key;
 
@@ -450,6 +452,14 @@ if (!SidebarBody || !ConversationView || !SidebarTitle || !OpenButton) {
   step('changes tab renders', visibleText().includes('Changes'));
   step('header shows the branch', await waitFor(() => visibleText().includes('main')));
 
+  // The resizable-split machinery should render a draggable gutter in the
+  // changes tab (list vs commit box) and, once a commit is selected, in the
+  // conversation view (history vs detail).
+  step(
+    'changes split renders a vertical gutter',
+    flat.some((entry) => entry.kind === 'element' && String(entry.props?.className).split(' ').includes('dgp-gutter') && String(entry.props?.className).split(' ').includes('h')),
+  );
+
   rootProps = { ...rootProps, wide: true };
   root = ConversationView;
   instances.clear();
@@ -466,6 +476,26 @@ if (!SidebarBody || !ConversationView || !SidebarTitle || !OpenButton) {
     await waitFor(() => visibleText().includes('first commit') && visibleText().includes('second commit')),
   );
   step('graph draws lane svg', flat.some((entry) => entry.kind === 'element' && entry.type === 'svg'));
+
+  // Selecting a commit in the wide conversation view opens the detail pane,
+  // which the horizontal split should expose with a horizontal gutter.
+  await clickText('second commit');
+  await settle();
+  step(
+    'detail split renders a horizontal gutter',
+    flat.some(
+      (entry) =>
+        entry.kind === 'element' &&
+        String(entry.props?.className).split(' ').includes('dgp-gutter') &&
+        !String(entry.props?.className).split(' ').includes('h'),
+    ),
+  );
+  // The wide commit detail defaults to side-by-side and offers a toggle back
+  // to unified view.
+  step(
+    'commit detail offers a side-by-side toggle',
+    flat.some((entry) => entry.kind === 'element' && entry.props?.title === 'Unified'),
+  );
 
   step('tags tab opens', await clickText('Tags'));
   await settle();
