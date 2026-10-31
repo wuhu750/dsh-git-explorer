@@ -1,0 +1,63 @@
+import { execFileSync } from 'node:child_process';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { __test } from '../index.js';
+
+const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dgp-repo-'));
+const run = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+run('init', '-q', '-b', 'main');
+run('config', 'user.name', 'Ada Lovelace');
+run('config', 'user.email', 'ada@example.com');
+await fs.mkdir(path.join(dir, 'src'));
+await fs.writeFile(path.join(dir, 'README.md'), '# Demo\n\nhello\n');
+await fs.writeFile(path.join(dir, 'src', 'index.js'), 'export const answer = 41;\n');
+run('add', '-A');
+run('commit', '-q', '-m', 'initial commit');
+await fs.writeFile(path.join(dir, 'src', 'index.js'), 'export const answer = 42;\n');
+run('add', 'src/index.js');
+await fs.writeFile(path.join(dir, 'src', 'index.js'), 'export const answer = 43;\n');
+await fs.writeFile(path.join(dir, 'notes.txt'), 'untracked line\n');
+run('branch', 'feature/demo');
+await fs.writeFile(path.join(dir, 'notes.txt'), 'untracked line\nsecond\n');
+
+const checks = [];
+const check = (name, value) => { checks.push([name, value]); };
+
+const repos = await __test.discoverRepositories(dir);
+check('repos', repos.map((r) => r.name));
+const status = await __test.readStatus(dir);
+check('status', status.entries.map((e) => `${e.index}${e.worktree} ${e.path}`));
+const log = await __test.readLog(dir, { limit: 10 });
+check('log', log.commits.map((c) => c.subject));
+const head = log.commits[0];
+const commit = await __test.readCommit(dir, head.hash);
+check('commitFiles', commit.files.map((f) => `${f.status} ${f.path} +${f.additions}-${f.deletions}`));
+const working = await __test.collectDiff(dir, { scope: 'working', path: 'src/index.js' });
+check('workingDiff', working.files.map((f) => `${f.path} +${f.additions}-${f.deletions}`));
+const staged = await __test.collectDiff(dir, { scope: 'staged' });
+check('stagedDiff', staged.files.map((f) => `${f.path} +${f.additions}-${f.deletions}`));
+const untracked = await __test.collectDiff(dir, { scope: 'untracked' });
+check('untrackedDiff', untracked.files.map((f) => `${f.path} +${f.additions}-${f.deletions}`));
+const blame = await __test.readBlame(dir, { path: 'src/index.js' });
+check('blame', blame.lines.map((l) => `${l.line}:${l.short}:${l.content}`));
+const branches = await __test.readBranches(dir);
+check('branches', branches.local.map((b) => `${b.name}${b.current ? '*' : ''}`));
+const remotes = await __test.readRemotes(dir);
+check('remotes', remotes.length);
+const files = await __test.readFiles(dir);
+check('files', files);
+check('remoteUrl1', __test.normalizeRemoteUrl('git@github.com:owner/repo.git'));
+check('remoteUrl2', __test.normalizeRemoteUrl('https://gitlab.com/owner/repo.git'));
+
+for (const [name, value] of checks) console.log(name, JSON.stringify(value));
+const failures = [];
+if (status.entries.length !== 2) failures.push('expected two status entries');
+if (working.files.length !== 1) failures.push('expected one working diff file');
+if (untracked.files.length !== 1) failures.push('expected one untracked diff file');
+if (blame.lines.length !== 1) failures.push('expected one blame line');
+if (!branches.local.some((b) => b.current)) failures.push('expected a current branch');
+if (__test.normalizeRemoteUrl('git@github.com:owner/repo.git') !== 'https://github.com/owner/repo') failures.push('ssh remote normalization');
+if (failures.length > 0) { console.error('FAIL', failures); process.exit(1); }
+console.log('SMOKE OK', dir);
+await fs.rm(dir, { recursive: true, force: true });
